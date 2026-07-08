@@ -40,6 +40,29 @@ effects. Guiding decisions:
 - **Styling through theme hooks**, one component per file, and logic kept in co-located hooks — see
   the conventions in [`.claude/rules/`](.claude/rules).
 
+## Design system & theming
+
+The base design system is in place: shared, themed primitives that screens compose from instead of
+raw React Native components and ad-hoc style values.
+
+- **Primitives** (`src/components/`) — `Text`, `Button`, and `ActivityIndicator`, each with a
+  co-located `use<Name>Theme` hook and tests. Features build on these rather than importing RN
+  primitives directly.
+- **Design tokens** (`src/theme/tokens.ts`) — the single source of truth for spacing, colors,
+  corner radii, typography, and border widths. Components never use raw numbers or hex values; token
+  *names* are stable across light/dark and only the color *values* differ per scheme.
+- **`useTheme` hook** (`src/theme/hooks/useTheme.ts`) — the one hook every `use<Name>Theme` reads
+  from. It resolves the active color scheme (light/dark), exposes the semantic token maps
+  (`surfaceColor`, `fontColor`, `borderColor`, …), and folds in the current safe-area insets as
+  `topInset` / `bottomInset` — the only raw layout numbers the styling rules allow.
+
+**Decision — no `ThemeProvider` / context.** Light vs dark is derived directly from the OS via
+React Native's `useColorScheme()`, so there is no theme state to share and nothing to provide. A
+context provider is the right call once the app lets the user *select* a theme (override the system
+setting) — at that point the chosen theme becomes app state that many components must read. Since
+we only ever follow the system appearance, a provider would add indirection with no benefit, so
+`useTheme()` simply reads the system scheme on each render.
+
 ## Tech choices
 
 The bias is to write the code myself; libraries are added only where they remove meaningful,
