@@ -3,7 +3,13 @@
  */
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { SafeAreaView, StatusBar, StyleSheet, Text, useColorScheme } from 'react-native';
+import {
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  useColorScheme,
+} from 'react-native';
+import { Text } from 'components/Text/Text';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
