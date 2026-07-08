@@ -1,38 +1,27 @@
 /**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
  * @format
  */
 
+import { StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import {
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  useColorScheme,
-} from 'react-native';
-import { Text } from 'components/Text/Text';
+
+import { QueryProvider } from 'query/provider';
+import { Documents } from 'features/Documents/Documents';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.text}>Hello DocumentsMobileChallange !</Text>
-      </SafeAreaView>
+      <QueryProvider>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <Documents />
+      </QueryProvider>
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 20,
-  },
-});
 
 export default App;
