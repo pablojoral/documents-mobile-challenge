@@ -30,3 +30,13 @@ export interface Document {
   Contributors: User[];
   Version: string;
 }
+
+/** Pushed over the `/notifications` WebSocket when another user creates a document. */
+export interface NewDocumentNotification {
+  /** RFC3339 date-time string. */
+  Timestamp: string;
+  UserID: string;
+  UserName: string;
+  DocumentID: string;
+  DocumentTitle: string;
+}

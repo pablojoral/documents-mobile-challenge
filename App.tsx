@@ -10,9 +10,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { QueryProvider } from 'query/provider';
 import { Documents } from 'features/Documents/Documents';
+import { useNotificationsSocketSync } from 'store/Notifications/useNotificationsSocketSync';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  useNotificationsSocketSync();
 
   return (
     <SafeAreaProvider>

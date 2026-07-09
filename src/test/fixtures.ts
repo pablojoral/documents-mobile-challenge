@@ -1,4 +1,4 @@
-import type { Document, User } from 'models/models';
+import type { Document, NewDocumentNotification, User } from 'models/models';
 
 let seq = 0;
 
@@ -23,6 +23,21 @@ export const makeDocument = (overrides: Partial<Document> = {}): Document => {
     Attachments: ['a.pdf'],
     Contributors: [makeUser()],
     Version: '1.0.0',
+    ...overrides,
+  };
+};
+
+/** Builds a `NewDocumentNotification` fixture with overridable fields. */
+export const makeNotification = (
+  overrides: Partial<NewDocumentNotification> = {},
+): NewDocumentNotification => {
+  seq += 1;
+  return {
+    Timestamp: '2020-08-12T07:30:08.280Z',
+    UserID: `user-${seq}`,
+    UserName: `User ${seq}`,
+    DocumentID: `doc-${seq}`,
+    DocumentTitle: `Document ${seq}`,
     ...overrides,
   };
 };

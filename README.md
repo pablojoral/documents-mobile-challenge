@@ -91,6 +91,55 @@ constrained by the challenge server's single unpaginated `GET /documents` endpoi
   (`useCallback` in `features/Documents/hooks/useDocumentsScreen.tsx`), so only changed rows
   re-render as the list scrolls or the sort changes.
 
+## Notifications (WebSocket)
+
+Real-time new-document notifications are consumed through `src/services/ws/`:
+
+- **`WebSocketClient<TMessage>`, not `BaseService`.** A socket is a long-lived, push-based
+  connection, not a request/response call, so it gets its own small class wrapping the native
+  `WebSocket` rather than extending `BaseService`. One instance per connection —
+  `notificationsSocket` (`services/ws/notificationsSocket.ts`) is the singleton for `/notifications`.
+  `TMessage` types whatever that connection sends (`NewDocumentNotification` today); if the same
+  endpoint ever pushed a second event shape, `TMessage` would widen to a union rather than
+  requiring another instance.
+- **Auto-reconnect with exponential backoff built in** (`services/ws/config.ts`), so a dropped
+  connection recovers without callers having to handle it.
+- **Listener API, not a hook.** `onMessage` / `onStatusChange` / `onError` each return an
+  unsubscribe function, keeping the client React-free.
+- **Tested via a mock socket.** `src/test/mockWebSocket.ts` stands in for the global `WebSocket`,
+  and `WebSocketClient.test.ts` covers connect/reconnect/parsing/listeners deterministically.
+- **`zustand` store + a thin synchronizer hook.** `store/Notifications/useNotificationsStore.ts`
+  holds the notification list (dedup by `DocumentID:Timestamp`, newest first, read/unread).
+  `store/Notifications/useNotificationsSocketSync.ts` is the only piece that touches both the
+  socket and the store: mounted once at the app root, it calls `notificationsSocket.connect()` and
+  forwards every message into `addNotification`. This keeps the transport (`services/ws`) and the
+  state (`store/Notifications`) decoupled — the store doesn't know a socket exists, and the client
+  doesn't know about zustand.
+  **Decision — `zustand` over Redux/Context.** Notification state is small, global, and
+  read/written from places that aren't necessarily parent/child of each other (the sync hook writes,
+  future badge/list UI reads), which rules out local `useState`/prop drilling. `zustand` gives that
+  global store with far less boilerplate than Redux (no actions/reducers/providers — just a
+  `create()` call and a selector hook), is widely adopted and battle-tested, and its selector-based
+  subscriptions avoid the re-render cost of Context.
+- **Decision — `maintainVisibleContentPosition` on the notifications list.** New notifications are
+  unshifted to the front of the store's array (newest first), and the socket sync keeps writing to
+  the store while the modal is open. Without anchoring, a `FlatList` shifts its on-screen content
+  when items are inserted above the viewport — the rows a scrolled-down user is reading silently
+  move. `NotificationsModal`'s `FlatList` sets `maintainVisibleContentPosition={{ minIndexForVisible: 0 }}`
+  so a user reading older notifications stays anchored in place when a new one arrives; a new
+  notification never auto-scrolls the list, even if the user is already at the top.
+- **Decision — read state is driven by on-screen visibility, not by the modal being open.**
+  Because new notifications can now arrive off-screen above a scrolled reader (see the anchoring
+  decision above), a blanket "mark everything as read whenever the modal is open" effect would mark
+  notifications the user never actually saw. Instead, `NotificationsModal`'s `FlatList` uses
+  `onViewableItemsChanged` + `viewabilityConfig` (`itemVisiblePercentThreshold: 75`,
+  `minimumViewTime: 300`) to call the store's `markAsRead(ids)` only for notifications that were
+  actually visible for a beat — a fast flick-scroll past a card doesn't count. A `NotificationsNewIndicator`
+  pill, absolute-positioned over the list and driven by the existing `useUnreadNotificationsCount()`
+  selector, tells the user unseen notifications are waiting whenever any remain unread; tapping it
+  calls `FlatList.scrollToOffset({ offset: 0, animated: true })` via a ref owned by
+  `useNotificationsModal`, jumping straight to the newest notifications.
+
 ## Tech choices
 
 The bias is to write the code myself; libraries are added only where they remove meaningful,
@@ -101,7 +150,8 @@ undifferentiated work. Each is justified here as it is introduced.
 | `@tanstack/react-query` | Server-state caching, background refetch, request de-duplication, and cache invalidation on mutation — the core of the documents feed. | RTK Query (heavier, Redux-coupled); hand-rolled fetching hooks (more boilerplate, easy to get caching/refetch wrong). |
 | `axios` | Single configured client with interceptors for base URL and error shaping. | Native `fetch` — viable, but interceptors and defaults are more ergonomic with Axios. |
 | `react-native-safe-area-context` | Correct safe-area insets across devices. | Manual inset math — brittle across notches/devices. |
-| `ws` client (wrapper over native `WebSocket`) _(planned)_ | Consume the real-time notifications feed with a basic primitive, wrapped for connect/reconnect and message parsing, per the challenge constraint. | `socket.io-client` — unnecessary and protocol-specific for a plain WS feed. |
+| `ws` client (wrapper over native `WebSocket`) | Consume the real-time notifications feed with a basic primitive, wrapped for connect/reconnect and message parsing, per the challenge constraint. | `socket.io-client` — unnecessary and protocol-specific for a plain WS feed. |
+| `zustand` | Global client state for notifications (pushed over the socket, read from anywhere in the tree): less boilerplate than Redux, widely adopted, simple to use, and fast. | Redux/RTK (more ceremony — actions, reducers, providers — for a single small slice of state); React Context — re-renders every consumer on any change, no built-in selectors. |
 | `@testing-library/react-native` | Render and drive components/hooks by user-visible behavior (text/role/accessibility). | Bare `react-test-renderer` — no user-centric queries; discouraged for component tests. |
 
 ## Getting started
@@ -154,18 +204,21 @@ yarn test        # or: yarn jest
 [React Native Testing Library](https://callstack.github.io/react-native-testing-library/) (RNTL,
 v13) for anything that renders. Config lives in `jest.config.js` + `jest.setup.ts`.
 
-**In place today.** The harness and the documents-feed suites are implemented — 18 test files run
-green across every layer below. Shared helpers live in `src/test/`: `makeDocument` / `makeUser`
-fixtures (`fixtures.ts`), and `renderWithQuery` / `renderHookWithQuery` (`renderWithQuery.tsx`),
-which wrap the unit in a fresh `QueryClient` (with `retry: false`) so query-backed code settles
-deterministically. `jest.setup.ts` globally mocks `react-native-safe-area-context` with zeroed
-insets so components render without a native provider.
+**In place today.** The harness, documents-feed, WebSocket-client, and notifications-store suites
+are implemented — 22 test files run green across every layer below. Shared helpers live in
+`src/test/`: `makeDocument` / `makeUser` / `makeNotification` fixtures (`fixtures.ts`),
+`renderWithQuery` / `renderHookWithQuery`
+(`renderWithQuery.tsx`), which wrap the unit in a fresh `QueryClient` (with `retry: false`) so
+query-backed code settles deterministically, and `MockWebSocket` / `installMockWebSocket`
+(`mockWebSocket.ts`), a controllable stand-in for the global `WebSocket`. `jest.setup.ts` globally
+mocks `react-native-safe-area-context` with zeroed insets so components render without a native
+provider.
 
 **Principles** (see [`.claude/rules/testing.md`](.claude/rules/testing.md)):
 - **Co-located** — `*.test.ts(x)` sits next to the unit it covers; only shared harness code
-  (fixtures, render wrappers, and — _(planned)_ — a WebSocket mock) lives in `test/`.
-- **Deterministic** — no real clock, network, or socket. Time is frozen with fake timers and HTTP
-  is mocked at `apiClient` (the `WebSocket` mock arrives with the notifications work).
+  (fixtures, render wrappers, the WebSocket mock) lives in `test/`.
+- **Deterministic** — no real clock, network, or socket. Time is frozen with fake timers, HTTP is
+  mocked at `apiClient`, and the socket is mocked via `installMockWebSocket()`.
 - **Mock one seam below the unit** — a service test mocks `apiClient`; a query-hook test mocks the
   service; a screen test mocks the query hook — so the layer under test is exercised for real.
 - **Behavior over implementation** — query by what the user sees (text/role/accessibility) and
@@ -179,7 +232,10 @@ insets so components render without a native provider.
   strings hooks (`useDocumentsScreen`, `useDocumentCard`, …). _(Create-document mutation: planned.)_
 - **Component** — RNTL render tests for the shared primitives (`Text`, `Button`,
   `ActivityIndicator`), the list/grid cards, and the empty / error / toggle / sort states.
-- **Transport** _(planned)_ — the `ws` client (connect/reconnect/parse) against a mock WebSocket.
+- **Transport** — `WebSocketClient` (connect/reconnect/parse/listeners) against a mock WebSocket.
+- **State** — `useNotificationsStore` (add/dedup/read/clear/selector) and
+  `useNotificationsSocketSync` (connects the socket and forwards messages into the store, stops on
+  unmount) against a mock WebSocket.
 
 Coverage targets logic-heavy modules (utils, hooks, services) toward full line/branch coverage;
 thin presentational wrappers get a render smoke test.
