@@ -35,30 +35,63 @@ describe('useNotificationsStore', () => {
     expect(useNotificationsStore.getState().notifications).toHaveLength(1);
   });
 
-  it('marks all notifications as read', () => {
+  it('marks the given notifications as read by id', () => {
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification({ DocumentTitle: 'Alpha' }));
+      useNotificationsStore.getState().addNotification(makeNotification({ DocumentTitle: 'Beta' }));
+    });
+    const [beta, alpha] = useNotificationsStore.getState().notifications;
+
+    act(() => {
+      useNotificationsStore.getState().markAsRead([alpha.id]);
+    });
+
+    const notifications = useNotificationsStore.getState().notifications;
+    expect(notifications.find(n => n.id === alpha.id)?.read).toBe(true);
+    expect(notifications.find(n => n.id === beta.id)?.read).toBe(false);
+  });
+
+  it('preserves referential identity of untouched notifications', () => {
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
       useNotificationsStore.getState().addNotification(makeNotification());
-      useNotificationsStore.getState().markAllAsRead();
+    });
+    const [target, untouched] = useNotificationsStore.getState().notifications;
+
+    act(() => {
+      useNotificationsStore.getState().markAsRead([target.id]);
     });
 
     expect(
-      useNotificationsStore.getState().notifications.every(n => n.read),
-    ).toBe(true);
+      useNotificationsStore.getState().notifications.find(n => n.id === untouched.id),
+    ).toBe(untouched);
   });
 
-  it('is a no-op to mark as read when nothing is unread', () => {
+  it('is a no-op when the given ids are already read or unknown', () => {
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
-      useNotificationsStore.getState().markAllAsRead();
+      useNotificationsStore.getState().markAsRead(['unknown-id']);
     });
-    const readState = useNotificationsStore.getState().notifications;
+    const state = useNotificationsStore.getState().notifications;
 
     act(() => {
-      useNotificationsStore.getState().markAllAsRead();
+      useNotificationsStore.getState().markAsRead(['unknown-id']);
     });
 
-    expect(useNotificationsStore.getState().notifications).toBe(readState);
+    expect(useNotificationsStore.getState().notifications).toBe(state);
+  });
+
+  it('is a no-op for an empty id list', () => {
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+    const state = useNotificationsStore.getState().notifications;
+
+    act(() => {
+      useNotificationsStore.getState().markAsRead([]);
+    });
+
+    expect(useNotificationsStore.getState().notifications).toBe(state);
   });
 
   it('clears all notifications', () => {
@@ -81,7 +114,8 @@ describe('useNotificationsStore', () => {
     expect(result.current).toBe(2);
 
     act(() => {
-      useNotificationsStore.getState().markAllAsRead();
+      const ids = useNotificationsStore.getState().notifications.map(n => n.id);
+      useNotificationsStore.getState().markAsRead(ids);
     });
     expect(result.current).toBe(0);
   });

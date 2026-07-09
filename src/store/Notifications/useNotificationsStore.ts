@@ -12,7 +12,7 @@ interface NotificationsState {
   /** Newest first. */
   notifications: StoredNotification[];
   addNotification: (notification: NewDocumentNotification) => void;
-  markAllAsRead: () => void;
+  markAsRead: (ids: string[]) => void;
   clear: () => void;
 }
 
@@ -32,13 +32,23 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     }));
   },
 
-  markAllAsRead: () => {
-    if (get().notifications.every(n => n.read)) {
+  markAsRead: ids => {
+    if (ids.length === 0) {
       return;
     }
-    set(state => ({
-      notifications: state.notifications.map(n => (n.read ? n : { ...n, read: true })),
-    }));
+    const idSet = new Set(ids);
+    let changed = false;
+    const notifications = get().notifications.map(n => {
+      if (n.read || !idSet.has(n.id)) {
+        return n;
+      }
+      changed = true;
+      return { ...n, read: true };
+    });
+    if (!changed) {
+      return;
+    }
+    set({ notifications });
   },
 
   clear: () => set({ notifications: [] }),

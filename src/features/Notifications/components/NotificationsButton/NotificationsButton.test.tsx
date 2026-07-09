@@ -1,4 +1,5 @@
 import React from 'react';
+import { FlatList } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { makeNotification } from 'test/fixtures';
@@ -27,17 +28,28 @@ describe('NotificationsButton', () => {
     expect(getByText('1')).toBeTruthy();
   });
 
-  it('opens the notifications modal on press, clearing the badge', () => {
+  it('opens the notifications modal on press; clears the badge once the notification is seen', () => {
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
     });
 
-    const { getByLabelText, getByText, queryByText } = render(<NotificationsButton />);
+    const { getByLabelText, getByText, queryByText, UNSAFE_getByType } = render(
+      <NotificationsButton />,
+    );
     expect(getByText('1')).toBeTruthy();
 
     fireEvent.press(getByLabelText('Notifications'));
 
     expect(getByText('Notifications')).toBeTruthy(); // modal title
-    expect(queryByText('1')).toBeNull(); // badge cleared, all read
+
+    const notification = useNotificationsStore.getState().notifications[0];
+    const list = UNSAFE_getByType(FlatList);
+    act(() => {
+      list.props.onViewableItemsChanged({
+        viewableItems: [{ item: notification, key: notification.id, index: 0, isViewable: true }],
+      });
+    });
+
+    expect(queryByText('1')).toBeNull(); // badge cleared, notification read
   });
 });

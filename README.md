@@ -128,6 +128,17 @@ Real-time new-document notifications are consumed through `src/services/ws/`:
   move. `NotificationsModal`'s `FlatList` sets `maintainVisibleContentPosition={{ minIndexForVisible: 0 }}`
   so a user reading older notifications stays anchored in place when a new one arrives; a new
   notification never auto-scrolls the list, even if the user is already at the top.
+- **Decision — read state is driven by on-screen visibility, not by the modal being open.**
+  Because new notifications can now arrive off-screen above a scrolled reader (see the anchoring
+  decision above), a blanket "mark everything as read whenever the modal is open" effect would mark
+  notifications the user never actually saw. Instead, `NotificationsModal`'s `FlatList` uses
+  `onViewableItemsChanged` + `viewabilityConfig` (`itemVisiblePercentThreshold: 75`,
+  `minimumViewTime: 300`) to call the store's `markAsRead(ids)` only for notifications that were
+  actually visible for a beat — a fast flick-scroll past a card doesn't count. A `NotificationsNewIndicator`
+  pill, absolute-positioned over the list and driven by the existing `useUnreadNotificationsCount()`
+  selector, tells the user unseen notifications are waiting whenever any remain unread; tapping it
+  calls `FlatList.scrollToOffset({ offset: 0, animated: true })` via a ref owned by
+  `useNotificationsModal`, jumping straight to the newest notifications.
 
 ## Tech choices
 

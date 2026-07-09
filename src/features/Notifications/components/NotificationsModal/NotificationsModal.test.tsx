@@ -1,4 +1,5 @@
 import React from 'react';
+import { FlatList } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { makeNotification } from 'test/fixtures';
@@ -29,25 +30,58 @@ describe('NotificationsModal', () => {
     expect(getByText(/Alpha/)).toBeTruthy();
   });
 
-  it('marks all notifications as read when opened, clearing the unread count', () => {
+  it('marks a notification as read once it is reported viewable', () => {
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
     });
     expect(useNotificationsStore.getState().notifications[0].read).toBe(false);
 
-    render(<NotificationsModal visible onClose={jest.fn()} />);
+    const { UNSAFE_getByType } = render(<NotificationsModal visible onClose={jest.fn()} />);
+    const notification = useNotificationsStore.getState().notifications[0];
+    const list = UNSAFE_getByType(FlatList);
+
+    act(() => {
+      list.props.onViewableItemsChanged({
+        viewableItems: [{ item: notification, key: notification.id, index: 0, isViewable: true }],
+      });
+    });
 
     expect(useNotificationsStore.getState().notifications[0].read).toBe(true);
   });
 
-  it('marks a notification as read if it arrives while already open', () => {
-    render(<NotificationsModal visible onClose={jest.fn()} />);
+  it('shows the new-notifications indicator while unread notifications remain, and hides it once read', () => {
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+    const notification = useNotificationsStore.getState().notifications[0];
+    const { getByText, queryByText, UNSAFE_getByType } = render(
+      <NotificationsModal visible onClose={jest.fn()} />,
+    );
 
+    expect(getByText('New notifications')).toBeTruthy();
+
+    const list = UNSAFE_getByType(FlatList);
+    act(() => {
+      list.props.onViewableItemsChanged({
+        viewableItems: [{ item: notification, key: notification.id, index: 0, isViewable: true }],
+      });
+    });
+
+    expect(queryByText('New notifications')).toBeNull();
+  });
+
+  it('scrolls to the top when the new-notifications indicator is pressed', () => {
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
     });
 
-    expect(useNotificationsStore.getState().notifications[0].read).toBe(true);
+    const { getByText, UNSAFE_getByType } = render(<NotificationsModal visible onClose={jest.fn()} />);
+    const list = UNSAFE_getByType(FlatList);
+    list.instance.scrollToOffset = jest.fn();
+
+    fireEvent.press(getByText('New notifications'));
+
+    expect(list.instance.scrollToOffset).toHaveBeenCalledWith({ offset: 0, animated: true });
   });
 
   it('calls onClose when the backdrop is pressed', () => {
