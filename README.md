@@ -105,10 +105,22 @@ Real-time new-document notifications are consumed through `src/services/ws/`:
 - **Auto-reconnect with exponential backoff built in** (`services/ws/config.ts`), so a dropped
   connection recovers without callers having to handle it.
 - **Listener API, not a hook.** `onMessage` / `onStatusChange` / `onError` each return an
-  unsubscribe function, keeping the client React-free — a future `useNotifications` hook wraps it
-  with `useEffect`.
+  unsubscribe function, keeping the client React-free.
 - **Tested via a mock socket.** `src/test/mockWebSocket.ts` stands in for the global `WebSocket`,
   and `WebSocketClient.test.ts` covers connect/reconnect/parsing/listeners deterministically.
+- **`zustand` store + a thin synchronizer hook.** `store/Notifications/useNotificationsStore.ts`
+  holds the notification list (dedup by `DocumentID:Timestamp`, newest first, read/unread).
+  `store/Notifications/useNotificationsSocketSync.ts` is the only piece that touches both the
+  socket and the store: mounted once at the app root, it calls `notificationsSocket.connect()` and
+  forwards every message into `addNotification`. This keeps the transport (`services/ws`) and the
+  state (`store/Notifications`) decoupled — the store doesn't know a socket exists, and the client
+  doesn't know about zustand.
+  **Decision — `zustand` over Redux/Context.** Notification state is small, global, and
+  read/written from places that aren't necessarily parent/child of each other (the sync hook writes,
+  future badge/list UI reads), which rules out local `useState`/prop drilling. `zustand` gives that
+  global store with far less boilerplate than Redux (no actions/reducers/providers — just a
+  `create()` call and a selector hook), is widely adopted and battle-tested, and its selector-based
+  subscriptions avoid the re-render cost of Context.
 
 ## Tech choices
 
@@ -121,6 +133,7 @@ undifferentiated work. Each is justified here as it is introduced.
 | `axios` | Single configured client with interceptors for base URL and error shaping. | Native `fetch` — viable, but interceptors and defaults are more ergonomic with Axios. |
 | `react-native-safe-area-context` | Correct safe-area insets across devices. | Manual inset math — brittle across notches/devices. |
 | `ws` client (wrapper over native `WebSocket`) | Consume the real-time notifications feed with a basic primitive, wrapped for connect/reconnect and message parsing, per the challenge constraint. | `socket.io-client` — unnecessary and protocol-specific for a plain WS feed. |
+| `zustand` | Global client state for notifications (pushed over the socket, read from anywhere in the tree): less boilerplate than Redux, widely adopted, simple to use, and fast. | Redux/RTK (more ceremony — actions, reducers, providers — for a single small slice of state); React Context — re-renders every consumer on any change, no built-in selectors. |
 | `@testing-library/react-native` | Render and drive components/hooks by user-visible behavior (text/role/accessibility). | Bare `react-test-renderer` — no user-centric queries; discouraged for component tests. |
 
 ## Getting started
@@ -173,9 +186,10 @@ yarn test        # or: yarn jest
 [React Native Testing Library](https://callstack.github.io/react-native-testing-library/) (RNTL,
 v13) for anything that renders. Config lives in `jest.config.js` + `jest.setup.ts`.
 
-**In place today.** The harness, documents-feed, and WebSocket-client suites are implemented — 20
-test files run green across every layer below. Shared helpers live in `src/test/`: `makeDocument` /
-`makeUser` fixtures (`fixtures.ts`), `renderWithQuery` / `renderHookWithQuery`
+**In place today.** The harness, documents-feed, WebSocket-client, and notifications-store suites
+are implemented — 22 test files run green across every layer below. Shared helpers live in
+`src/test/`: `makeDocument` / `makeUser` / `makeNotification` fixtures (`fixtures.ts`),
+`renderWithQuery` / `renderHookWithQuery`
 (`renderWithQuery.tsx`), which wrap the unit in a fresh `QueryClient` (with `retry: false`) so
 query-backed code settles deterministically, and `MockWebSocket` / `installMockWebSocket`
 (`mockWebSocket.ts`), a controllable stand-in for the global `WebSocket`. `jest.setup.ts` globally
@@ -201,6 +215,9 @@ provider.
 - **Component** — RNTL render tests for the shared primitives (`Text`, `Button`,
   `ActivityIndicator`), the list/grid cards, and the empty / error / toggle / sort states.
 - **Transport** — `WebSocketClient` (connect/reconnect/parse/listeners) against a mock WebSocket.
+- **State** — `useNotificationsStore` (add/dedup/read/clear/selector) and
+  `useNotificationsSocketSync` (connects the socket and forwards messages into the store, stops on
+  unmount) against a mock WebSocket.
 
 Coverage targets logic-heavy modules (utils, hooks, services) toward full line/branch coverage;
 thin presentational wrappers get a render smoke test.
