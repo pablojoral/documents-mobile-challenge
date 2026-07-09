@@ -11,6 +11,7 @@ import { ViewModeToggle } from './components/ViewModeToggle/ViewModeToggle';
 import { SortSelector } from './components/SortSelector/SortSelector';
 import { DocumentsEmptyState } from './components/DocumentsEmptyState/DocumentsEmptyState';
 import { DocumentsError } from './components/DocumentsError/DocumentsError';
+import { NotificationsButton } from 'features/Notifications/components/NotificationsButton/NotificationsButton';
 
 /** Documents list screen: sortable, switchable between list and grid views. */
 export const Documents = () => {
@@ -35,9 +36,12 @@ export const Documents = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text size="font-size-xxl" weight="font-weight-bold">
-          {title}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text size="font-size-xxl" weight="font-weight-bold">
+            {title}
+          </Text>
+          <NotificationsButton />
+        </View>
         <View style={styles.controlsRow}>
           <ViewModeToggle value={viewMode} onChange={setViewMode} />
           <SortSelector value={sort} onChange={setSort} />

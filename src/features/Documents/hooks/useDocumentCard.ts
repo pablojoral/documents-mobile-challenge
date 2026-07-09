@@ -1,6 +1,6 @@
 import type { Document } from 'models/models';
 
-import { formatRelativeDate } from '../utils/formatRelativeDate';
+import { formatRelativeDate } from 'utils/formatRelativeDate';
 import { useDocumentCardStrings } from './useDocumentCardStrings';
 
 /**

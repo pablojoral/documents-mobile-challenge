@@ -17,6 +17,11 @@ export const useDocumentsTheme = () => {
       paddingBottom: theme.spacing['spacing-sm'],
       gap: theme.spacing['spacing-sm'],
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     controlsRow: {
       flexDirection: 'row',
       alignItems: 'center',
