@@ -120,6 +120,7 @@ export interface ColorScheme {
     'border-secondary': string;
     'border-disabled': string;
     'border-brand': string;
+    'border-danger': string;
   };
 }
 
@@ -146,6 +147,7 @@ export const lightColors: ColorScheme = {
     'border-secondary': palette.grey100,
     'border-disabled': palette.grey200,
     'border-brand': palette.primary,
+    'border-danger': palette.danger,
   },
 };
 
@@ -172,6 +174,7 @@ export const darkColors: ColorScheme = {
     'border-secondary': palette.grey800,
     'border-disabled': palette.grey700,
     'border-brand': palette.primaryDark,
+    'border-danger': palette.danger,
   },
 };
 

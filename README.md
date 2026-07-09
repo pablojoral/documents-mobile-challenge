@@ -153,6 +153,7 @@ undifferentiated work. Each is justified here as it is introduced.
 | `ws` client (wrapper over native `WebSocket`) | Consume the real-time notifications feed with a basic primitive, wrapped for connect/reconnect and message parsing, per the challenge constraint. | `socket.io-client` — unnecessary and protocol-specific for a plain WS feed. |
 | `zustand` | Global client state for notifications (pushed over the socket, read from anywhere in the tree): less boilerplate than Redux, widely adopted, simple to use, and fast. | Redux/RTK (more ceremony — actions, reducers, providers — for a single small slice of state); React Context — re-renders every consumer on any change, no built-in selectors. |
 | `@testing-library/react-native` | Render and drive components/hooks by user-visible behavior (text/role/accessibility). | Bare `react-test-renderer` — no user-centric queries; discouraged for component tests. |
+| `@react-native-documents/picker` | Native file picker backing `DocumentInput`'s "attach a file" flow, needed for the create-document feature. This is a bare RN 0.86 app with the New Architecture (Fabric/TurboModules) enabled, and this package is the actively maintained fork with first-class New Arch support. | `react-native-document-picker` — the older, more widely known package; only gained New Arch support in later 9.x releases, judged less safe for this app's RN version. `expo-document-picker` — Expo-only, not usable without pulling in Expo modules on a bare-RN project. |
 
 ## Getting started
 
