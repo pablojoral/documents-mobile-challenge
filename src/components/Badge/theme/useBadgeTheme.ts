@@ -7,6 +7,8 @@ export const useBadgeTheme = () => {
 
   const styles = StyleSheet.create({
     container: {
+      flexDirection: 'row',
+      flexShrink: 0,
       backgroundColor: theme.surfaceColor['surface-danger'],
       borderRadius: theme.cornerRad['corner-rad-full'],
       minWidth: theme.iconSize['icon-size-sm'],

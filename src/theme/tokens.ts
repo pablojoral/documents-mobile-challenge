@@ -27,6 +27,7 @@ export const cornerRad = {
 } as const;
 
 export const fontSize = {
+  'font-size-xxs': 10,
   'font-size-xs': 12,
   'font-size-sm': 14,
   'font-size-md': 16,
@@ -38,6 +39,7 @@ export const fontSize = {
 } as const;
 
 export const lineHeight = {
+  'line-height-xxs': 14,
   'line-height-xs': 16,
   'line-height-sm': 20,
   'line-height-md': 24,

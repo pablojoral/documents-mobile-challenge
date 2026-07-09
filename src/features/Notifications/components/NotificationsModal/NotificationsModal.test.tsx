@@ -40,6 +40,16 @@ describe('NotificationsModal', () => {
     expect(useNotificationsStore.getState().notifications[0].read).toBe(true);
   });
 
+  it('marks a notification as read if it arrives while already open', () => {
+    render(<NotificationsModal visible onClose={jest.fn()} />);
+
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+
+    expect(useNotificationsStore.getState().notifications[0].read).toBe(true);
+  });
+
   it('calls onClose when the backdrop is pressed', () => {
     const onClose = jest.fn();
     const { getByLabelText } = render(<NotificationsModal visible onClose={onClose} />);

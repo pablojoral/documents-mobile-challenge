@@ -7,7 +7,9 @@ export const useNotificationsButtonTheme = () => {
 
   const styles = StyleSheet.create({
     trigger: {
-      paddingVertical: theme.spacing['spacing-xs'],
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: theme.spacing['spacing-sm'],
       paddingHorizontal: theme.spacing['spacing-sm'],
       borderRadius: theme.cornerRad['corner-rad-md'],
       borderWidth: theme.borderWidth['border-width-hairline'],
@@ -15,9 +17,10 @@ export const useNotificationsButtonTheme = () => {
       backgroundColor: theme.surfaceColor['surface-primary'],
     },
     badge: {
+      flexShrink: 0,
       position: 'absolute',
-      top: -theme.spacing['spacing-xs'],
-      right: -theme.spacing['spacing-xs'],
+      right: theme.spacing['spacing-xs'],
+      top: theme.spacing['spacing-xs'],
     },
   });
 

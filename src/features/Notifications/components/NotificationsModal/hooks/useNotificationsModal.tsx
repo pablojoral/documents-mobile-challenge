@@ -20,7 +20,7 @@ export const useNotificationsModal = (visible: boolean) => {
     if (visible) {
       markAllAsRead();
     }
-  }, [visible, markAllAsRead]);
+  }, [visible, notifications, markAllAsRead]);
 
   const keyExtractor = useCallback((item: StoredNotification) => item.id, []);
 

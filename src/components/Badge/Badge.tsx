@@ -25,7 +25,12 @@ export const Badge = ({ count, max = 99 }: BadgeProps) => {
 
   return (
     <View style={styles.container}>
-      <Text size="font-size-xs" weight="font-weight-semibold" color="font-on-brand">
+      <Text
+        size="font-size-xxs"
+        weight="font-weight-semibold"
+        color="font-on-brand"
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </View>
