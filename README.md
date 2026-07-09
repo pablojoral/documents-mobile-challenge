@@ -121,6 +121,13 @@ Real-time new-document notifications are consumed through `src/services/ws/`:
   global store with far less boilerplate than Redux (no actions/reducers/providers — just a
   `create()` call and a selector hook), is widely adopted and battle-tested, and its selector-based
   subscriptions avoid the re-render cost of Context.
+- **Decision — `maintainVisibleContentPosition` on the notifications list.** New notifications are
+  unshifted to the front of the store's array (newest first), and the socket sync keeps writing to
+  the store while the modal is open. Without anchoring, a `FlatList` shifts its on-screen content
+  when items are inserted above the viewport — the rows a scrolled-down user is reading silently
+  move. `NotificationsModal`'s `FlatList` sets `maintainVisibleContentPosition={{ minIndexForVisible: 0 }}`
+  so a user reading older notifications stays anchored in place when a new one arrives; a new
+  notification never auto-scrolls the list, even if the user is already at the top.
 
 ## Tech choices
 

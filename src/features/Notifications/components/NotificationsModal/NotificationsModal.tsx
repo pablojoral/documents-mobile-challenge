@@ -27,6 +27,7 @@ export const NotificationsModal = ({ visible, onClose }: NotificationsModalProps
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={NotificationsEmptyState}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
       />
     </Modal>
   );
