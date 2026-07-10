@@ -6,13 +6,19 @@ import { TextInput } from 'components/TextInput/TextInput';
 import { DocumentInput } from 'components/DocumentInput/DocumentInput';
 import { useAddDocument } from 'query/Documents/useAddDocument';
 
-import { createDocumentSchema, DOCUMENT_NAME_MAX_LENGTH, type CreateDocumentFormValues } from '../../../schema';
+import {
+  createDocumentSchema,
+  DOCUMENT_NAME_MAX_LENGTH,
+  MAX_FILES,
+  MAX_FILE_SIZE_BYTES,
+  type CreateDocumentFormValues,
+} from '../../../schema';
 import { useCreateDocumentModalStrings } from './useCreateDocumentModalStrings';
 
 const DEFAULT_VALUES: CreateDocumentFormValues = {
   name: '',
   version: '',
-  file: null,
+  files: [],
 };
 
 interface UseCreateDocumentModalParams {
@@ -45,7 +51,7 @@ export const useCreateDocumentModal = ({ visible, onClose }: UseCreateDocumentMo
       await mutateAsync({
         name: values.name,
         version: values.version,
-        file: values.file!,
+        files: values.files,
       });
       onClose();
     },
@@ -82,16 +88,26 @@ export const useCreateDocumentModal = ({ visible, onClose }: UseCreateDocumentMo
   );
 
   const renderFileField = useCallback(
-    ({ field }: { field: ControllerRenderProps<CreateDocumentFormValues, 'file'> }) => (
+    ({ field }: { field: ControllerRenderProps<CreateDocumentFormValues, 'files'> }) => (
       <DocumentInput
         label={strings.fileLabel}
         pickLabel={strings.pickFileLabel}
+        removeLabel={strings.removeFileLabel}
+        tooLargeLabel={strings.tooLargeFileLabel}
         value={field.value}
         onChange={field.onChange}
-        error={errors.file?.message}
+        error={errors.files?.message}
+        maxFiles={MAX_FILES}
+        maxFileSize={MAX_FILE_SIZE_BYTES}
       />
     ),
-    [strings.fileLabel, strings.pickFileLabel, errors.file?.message],
+    [
+      strings.fileLabel,
+      strings.pickFileLabel,
+      strings.removeFileLabel,
+      strings.tooLargeFileLabel,
+      errors.files?.message,
+    ],
   );
 
   return {

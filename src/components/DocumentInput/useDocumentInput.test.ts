@@ -39,21 +39,38 @@ describe('useDocumentInput', () => {
     mockIsErrorWithCode.mockReset();
   });
 
-  it('calls onChange with the mapped file on success', async () => {
+  it('calls onChange with the picked files appended to the existing value', async () => {
     mockPick.mockResolvedValue([makeDocumentPickerResponse()]);
     const onChange = jest.fn();
-    const { result } = renderHook(() => useDocumentInput({ onChange }));
+    const existing = { uri: 'file:///existing.pdf', name: 'existing.pdf', size: 5, type: 'application/pdf' };
+    const { result } = renderHook(() => useDocumentInput({ value: [existing], onChange }));
 
     await act(async () => {
       await result.current.handlePick();
     });
 
-    expect(onChange).toHaveBeenCalledWith({
-      uri: 'file:///a.pdf',
-      name: 'a.pdf',
-      size: 10,
-      type: 'application/pdf',
+    expect(onChange).toHaveBeenCalledWith([
+      existing,
+      { uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' },
+    ]);
+  });
+
+  it('appends multiple files picked in a single selection', async () => {
+    mockPick.mockResolvedValue([
+      makeDocumentPickerResponse({ uri: 'file:///a.pdf', name: 'a.pdf' }),
+      makeDocumentPickerResponse({ uri: 'file:///b.pdf', name: 'b.pdf' }),
+    ]);
+    const onChange = jest.fn();
+    const { result } = renderHook(() => useDocumentInput({ value: [], onChange }));
+
+    await act(async () => {
+      await result.current.handlePick();
     });
+
+    expect(onChange).toHaveBeenCalledWith([
+      { uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' },
+      { uri: 'file:///b.pdf', name: 'b.pdf', size: 10, type: 'application/pdf' },
+    ]);
   });
 
   it('falls back to deriving the name from the uri when name is null', async () => {
@@ -66,18 +83,15 @@ describe('useDocumentInput', () => {
       }),
     ]);
     const onChange = jest.fn();
-    const { result } = renderHook(() => useDocumentInput({ onChange }));
+    const { result } = renderHook(() => useDocumentInput({ value: [], onChange }));
 
     await act(async () => {
       await result.current.handlePick();
     });
 
-    expect(onChange).toHaveBeenCalledWith({
-      uri: 'file:///path/to/report.pdf',
-      name: 'report.pdf',
-      size: 20,
-      type: null,
-    });
+    expect(onChange).toHaveBeenCalledWith([
+      { uri: 'file:///path/to/report.pdf', name: 'report.pdf', size: 20, type: null },
+    ]);
   });
 
   it('swallows cancellation without calling onChange or onPickError', async () => {
@@ -86,7 +100,7 @@ describe('useDocumentInput', () => {
     const onChange = jest.fn();
     const onPickError = jest.fn();
     const { result } = renderHook(() =>
-      useDocumentInput({ onChange, onPickError }),
+      useDocumentInput({ value: [], onChange, onPickError }),
     );
 
     await act(async () => {
@@ -104,7 +118,7 @@ describe('useDocumentInput', () => {
     const onChange = jest.fn();
     const onPickError = jest.fn();
     const { result } = renderHook(() =>
-      useDocumentInput({ onChange, onPickError }),
+      useDocumentInput({ value: [], onChange, onPickError }),
     );
 
     await act(async () => {
@@ -125,7 +139,7 @@ describe('useDocumentInput', () => {
         }),
     );
     const onChange = jest.fn();
-    const { result } = renderHook(() => useDocumentInput({ onChange }));
+    const { result } = renderHook(() => useDocumentInput({ value: [], onChange }));
 
     expect(result.current.isPicking).toBe(false);
 
@@ -147,7 +161,7 @@ describe('useDocumentInput', () => {
   it('does not call pick when disabled', async () => {
     const onChange = jest.fn();
     const { result } = renderHook(() =>
-      useDocumentInput({ onChange, disabled: true }),
+      useDocumentInput({ value: [], onChange, disabled: true }),
     );
 
     await act(async () => {
@@ -167,7 +181,7 @@ describe('useDocumentInput', () => {
         }),
     );
     const onChange = jest.fn();
-    const { result } = renderHook(() => useDocumentInput({ onChange }));
+    const { result } = renderHook(() => useDocumentInput({ value: [], onChange }));
 
     let firstPick: Promise<void>;
     act(() => {
@@ -184,6 +198,101 @@ describe('useDocumentInput', () => {
     await act(async () => {
       resolvePick([makeDocumentPickerResponse()]);
       await firstPick;
+    });
+  });
+
+  it('reports isAtMax once the value reaches maxFiles and blocks further picks', async () => {
+    const onChange = jest.fn();
+    const value = Array.from({ length: 3 }, (_, i) => ({
+      uri: `file:///${i}.pdf`,
+      name: `${i}.pdf`,
+      size: 1,
+      type: 'application/pdf',
+    }));
+    const { result } = renderHook(() => useDocumentInput({ value, onChange, maxFiles: 3 }));
+
+    expect(result.current.isAtMax).toBe(true);
+
+    await act(async () => {
+      await result.current.handlePick();
+    });
+
+    expect(mockPick).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('truncates a pick that would exceed maxFiles to the remaining slots', async () => {
+    mockPick.mockResolvedValue([
+      makeDocumentPickerResponse({ uri: 'file:///a.pdf', name: 'a.pdf' }),
+      makeDocumentPickerResponse({ uri: 'file:///b.pdf', name: 'b.pdf' }),
+      makeDocumentPickerResponse({ uri: 'file:///c.pdf', name: 'c.pdf' }),
+    ]);
+    const onChange = jest.fn();
+    const existing = { uri: 'file:///existing.pdf', name: 'existing.pdf', size: 5, type: 'application/pdf' };
+    const { result } = renderHook(() =>
+      useDocumentInput({ value: [existing], onChange, maxFiles: 2 }),
+    );
+
+    await act(async () => {
+      await result.current.handlePick();
+    });
+
+    expect(onChange).toHaveBeenCalledWith([
+      existing,
+      { uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' },
+    ]);
+  });
+
+  it('removes a file at the given index', () => {
+    const onChange = jest.fn();
+    const value = [
+      { uri: 'file:///a.pdf', name: 'a.pdf', size: 1, type: 'application/pdf' },
+      { uri: 'file:///b.pdf', name: 'b.pdf', size: 2, type: 'application/pdf' },
+    ];
+    const { result } = renderHook(() => useDocumentInput({ value, onChange }));
+
+    act(() => {
+      result.current.handleRemove(0);
+    });
+
+    expect(onChange).toHaveBeenCalledWith([value[1]]);
+  });
+
+  describe('isFileTooLarge', () => {
+    it('flags a file whose size exceeds maxFileSize', () => {
+      const onChange = jest.fn();
+      const { result } = renderHook(() => useDocumentInput({ value: [], onChange, maxFileSize: 100 }));
+
+      expect(
+        result.current.isFileTooLarge({ uri: 'file:///a.pdf', name: 'a.pdf', size: 101, type: null }),
+      ).toBe(true);
+    });
+
+    it('does not flag a file at or under maxFileSize', () => {
+      const onChange = jest.fn();
+      const { result } = renderHook(() => useDocumentInput({ value: [], onChange, maxFileSize: 100 }));
+
+      expect(
+        result.current.isFileTooLarge({ uri: 'file:///a.pdf', name: 'a.pdf', size: 100, type: null }),
+      ).toBe(false);
+    });
+
+    it('does not flag a file with an unknown (null) size', () => {
+      const onChange = jest.fn();
+      const { result } = renderHook(() => useDocumentInput({ value: [], onChange, maxFileSize: 100 }));
+
+      expect(
+        result.current.isFileTooLarge({ uri: 'file:///a.pdf', name: 'a.pdf', size: null, type: null }),
+      ).toBe(false);
+    });
+
+    it('never flags a file when maxFileSize is not set', () => {
+      const onChange = jest.fn();
+      const { result } = renderHook(() => useDocumentInput({ value: [], onChange }));
+
+      expect(
+        result.current.isFileTooLarge({ uri: 'file:///a.pdf', name: 'a.pdf', size: Number.MAX_SAFE_INTEGER, type: null }),
+      ).toBe(false);
     });
   });
 });

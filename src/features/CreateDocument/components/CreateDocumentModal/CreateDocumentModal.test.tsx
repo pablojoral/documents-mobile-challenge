@@ -52,7 +52,7 @@ describe('CreateDocumentModal', () => {
     );
     expect(getByLabelText('Name')).toBeTruthy();
     expect(getByLabelText('Version')).toBeTruthy();
-    expect(getByText('Attachment')).toBeTruthy();
+    expect(getByText('Attachments')).toBeTruthy();
     expect(getByText('Create document')).toBeTruthy();
   });
 
@@ -62,7 +62,7 @@ describe('CreateDocumentModal', () => {
 
     expect(await findByText('Name is required.')).toBeTruthy();
     expect(getByText('Version is required.')).toBeTruthy();
-    expect(getByText('Select a file to attach.')).toBeTruthy();
+    expect(getByText('Select at least one file to attach.')).toBeTruthy();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -101,8 +101,24 @@ describe('CreateDocumentModal', () => {
 
     fireEvent.press(getByText('Create document'));
 
-    expect(await findByText('File must be 10 MB or smaller.')).toBeTruthy();
+    expect(await findByText('Each file must be 10 MB or smaller.')).toBeTruthy();
     expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('highlights only the oversized file among several picked files', async () => {
+    mockPick.mockResolvedValue([
+      makePickResponse({ uri: 'file:///small.pdf', name: 'small.pdf', size: 1024 }),
+      makePickResponse({ uri: 'file:///big.pdf', name: 'big.pdf', size: 11 * 1024 * 1024 }),
+    ]);
+    const { getByText, getAllByText } = render(
+      <CreateDocumentModal visible onClose={jest.fn()} />,
+    );
+    fireEvent.press(getByText('Choose file'));
+
+    await waitFor(() => expect(getByText('big.pdf')).toBeTruthy());
+    expect(getByText('small.pdf')).toBeTruthy();
+    // The caption is scoped to the oversized file, not repeated for the valid one.
+    expect(getAllByText('Too large (max 10 MB)')).toHaveLength(1);
   });
 
   it('submits the form and closes the modal on success', async () => {
@@ -124,10 +140,71 @@ describe('CreateDocumentModal', () => {
       expect(mutateAsync).toHaveBeenCalledWith({
         name: 'Report',
         version: '1.0.0',
-        file: expect.objectContaining({ name: 'a.pdf' }),
+        files: [expect.objectContaining({ name: 'a.pdf' })],
       }),
     );
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('accumulates files picked across multiple presses and submits all of them', async () => {
+    mockPick
+      .mockResolvedValueOnce([makePickResponse({ uri: 'file:///a.pdf', name: 'a.pdf' })])
+      .mockResolvedValueOnce([makePickResponse({ uri: 'file:///b.pdf', name: 'b.pdf' })]);
+    const { getByLabelText, getByText } = render(
+      <CreateDocumentModal visible onClose={jest.fn()} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Name'), 'Report');
+    fireEvent.changeText(getByLabelText('Version'), '1.0.0');
+    fireEvent.press(getByText('Choose file'));
+    await waitFor(() => expect(getByText('a.pdf')).toBeTruthy());
+    fireEvent.press(getByText('Choose file'));
+    await waitFor(() => expect(getByText('b.pdf')).toBeTruthy());
+
+    fireEvent.press(getByText('Create document'));
+
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith({
+        name: 'Report',
+        version: '1.0.0',
+        files: [
+          expect.objectContaining({ name: 'a.pdf' }),
+          expect.objectContaining({ name: 'b.pdf' }),
+        ],
+      }),
+    );
+  });
+
+  it('removes a picked file when its remove action is pressed', async () => {
+    mockPick.mockResolvedValue([makePickResponse()]);
+    const { getByText, getByLabelText, queryByText } = render(
+      <CreateDocumentModal visible onClose={jest.fn()} />,
+    );
+
+    fireEvent.press(getByText('Choose file'));
+    await waitFor(() => expect(getByText('a.pdf')).toBeTruthy());
+
+    fireEvent.press(getByLabelText('Remove a.pdf'));
+
+    expect(queryByText('a.pdf')).toBeNull();
+  });
+
+  it('caps a single selection at the 10-file maximum and disables further picking', async () => {
+    const responses = Array.from({ length: 11 }, (_, i) =>
+      makePickResponse({ uri: `file:///${i}.pdf`, name: `${i}.pdf` }),
+    ) as unknown as Parameters<typeof mockPick.mockResolvedValue>[0];
+    mockPick.mockResolvedValue(responses);
+    const { getByText, queryByText } = render(
+      <CreateDocumentModal visible onClose={jest.fn()} />,
+    );
+
+    fireEvent.press(getByText('Choose file'));
+    await waitFor(() => expect(getByText('9.pdf')).toBeTruthy());
+    expect(queryByText('10.pdf')).toBeNull();
+
+    mockPick.mockClear();
+    fireEvent.press(getByText('Choose file'));
+    expect(mockPick).not.toHaveBeenCalled();
   });
 
   it('shows a loading submit button while the mutation is pending', () => {

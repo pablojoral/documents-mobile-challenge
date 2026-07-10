@@ -7,7 +7,7 @@ import type { PickedFile } from 'components/DocumentInput/useDocumentInput';
 export interface AddDocumentInput {
   name: string;
   version: string;
-  file: PickedFile;
+  files: PickedFile[];
 }
 
 const CURRENT_USER: User = { ID: 'local-user', Name: 'You' };
@@ -19,7 +19,7 @@ const buildDocument = (input: AddDocumentInput): Document => {
     CreatedAt: now,
     UpdatedAt: now,
     Title: input.name,
-    Attachments: [input.file.name],
+    Attachments: input.files.map(file => file.name),
     Contributors: [CURRENT_USER],
     Version: input.version,
   };

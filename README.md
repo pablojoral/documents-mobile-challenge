@@ -152,9 +152,14 @@ An "Add document" button (with a leading plus icon) at the bottom of the Documen
 - **`react-hook-form` + `zod`.** Fields are bound via RHF's `Controller` (needed since `TextInput`/
   `DocumentInput` are controlled components, not ref-based). A single `zod` schema
   (`features/CreateDocument/schema.ts`) drives all validation: name ≤100 chars, version matching
-  `0-99.0-99.0-99`, file required and ≤10 MB.
-- **File size is validated after picking, not by the OS picker** — the native picker only filters
-  by MIME type, so the 10 MB check happens against the `size` it returns once a file is chosen.
+  `0-99.0-99.0-99`, at least one file attached, and each file ≤10 MB.
+- **Multiple attachments, capped at 10 files.** Neither iOS's nor Android's document picker
+  supports a "max N selections" option, so `DocumentInput`'s `maxFiles` enforces the cap app-side —
+  disabling further picks at capacity and truncating any pick that would exceed it. Each file has
+  its own remove action.
+- **Oversized files are highlighted per file, not just via one form-level message** — the 10 MB
+  limit applies per attachment (not combined), and `DocumentInput`'s `maxFileSize` flags each
+  oversized file's name in red with a "Too large" caption as soon as it's picked.
 - **Decision — document creation is entirely client-side, no network call.** The challenge server's
   `GET /documents` has no persistence or `POST` handler; it just returns fresh random fake data on
   every call. So `query/Documents/useAddDocument.ts` builds the `Document` locally and writes it into
