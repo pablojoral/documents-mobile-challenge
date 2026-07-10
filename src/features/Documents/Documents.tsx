@@ -12,6 +12,7 @@ import { SortSelector } from './components/SortSelector/SortSelector';
 import { DocumentsEmptyState } from './components/DocumentsEmptyState/DocumentsEmptyState';
 import { DocumentsError } from './components/DocumentsError/DocumentsError';
 import { NotificationsButton } from 'features/Notifications/components/NotificationsButton/NotificationsButton';
+import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
 
 /** Documents list screen: sortable, switchable between list and grid views. */
 export const Documents = () => {
@@ -75,6 +76,8 @@ export const Documents = () => {
           }
         />
       )}
+
+      <AddDocumentButton />
     </View>
   );
 };
