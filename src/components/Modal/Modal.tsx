@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal as RNModal, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 
+import { Icon } from 'components/Icon/Icon';
 import { Text } from 'components/Text/Text';
 
 import { useModalTheme } from './theme/useModalTheme';
@@ -31,7 +32,7 @@ export const Modal = ({
       <Pressable
         style={styles.backdrop}
         accessibilityRole="button"
-        accessibilityLabel={closeLabel}
+        accessibilityLabel="Dismiss"
         onPress={onClose}
       />
       <View style={styles.sheet}>
@@ -39,10 +40,11 @@ export const Modal = ({
           <Text size="font-size-md" weight="font-weight-semibold">
             {title}
           </Text>
-          <Pressable onPress={onClose} accessibilityRole="button">
-            <Text color="font-brand" weight="font-weight-medium">
-              {closeLabel}
-            </Text>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={closeLabel}>
+            <Icon name="close" size="icon-size-sm" color="font-brand" />
           </Pressable>
         </View>
         {children}

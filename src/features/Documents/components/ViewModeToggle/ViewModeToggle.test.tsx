@@ -5,19 +5,19 @@ import { ViewModeToggle } from './ViewModeToggle';
 
 describe('ViewModeToggle', () => {
   it('renders both segments', () => {
-    const { getByText } = render(
+    const { getByLabelText } = render(
       <ViewModeToggle value="list" onChange={jest.fn()} />,
     );
-    expect(getByText('List')).toBeTruthy();
-    expect(getByText('Grid')).toBeTruthy();
+    expect(getByLabelText('List')).toBeTruthy();
+    expect(getByLabelText('Grid')).toBeTruthy();
   });
 
   it('calls onChange with the pressed mode', () => {
     const onChange = jest.fn();
-    const { getByText } = render(
+    const { getByLabelText } = render(
       <ViewModeToggle value="list" onChange={onChange} />,
     );
-    fireEvent.press(getByText('Grid'));
+    fireEvent.press(getByLabelText('Grid'));
     expect(onChange).toHaveBeenCalledWith('grid');
   });
 });

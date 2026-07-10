@@ -31,18 +31,18 @@ describe('Modal', () => {
         <RNText>Form body</RNText>
       </Modal>,
     );
-    fireEvent.press(getByLabelText('Close'));
+    fireEvent.press(getByLabelText('Dismiss'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('calls onClose when the close button is pressed', () => {
     const onClose = jest.fn();
-    const { getByText } = render(
+    const { getByLabelText } = render(
       <Modal visible onClose={onClose} title="Add document" closeLabel="Close">
         <RNText>Form body</RNText>
       </Modal>,
     );
-    fireEvent.press(getByText('Close'));
+    fireEvent.press(getByLabelText('Close'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

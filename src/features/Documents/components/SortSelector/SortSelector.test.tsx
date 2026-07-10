@@ -1,4 +1,5 @@
 import React from 'react';
+import Svg from 'react-native-svg';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { SortSelector } from './SortSelector';
@@ -24,11 +25,15 @@ describe('SortSelector', () => {
     expect(onChange).toHaveBeenCalledWith('created-asc');
   });
 
-  it('marks the active option with a check', () => {
-    const { getAllByText, getByText } = render(
+  it('marks the active option with a check icon', () => {
+    const { getAllByText, UNSAFE_getAllByType } = render(
       <SortSelector value="title-asc" onChange={jest.fn()} />,
     );
+    // Only the trigger's chevron-down icon renders before the sheet opens.
+    expect(UNSAFE_getAllByType(Svg)).toHaveLength(1);
+
     fireEvent.press(getAllByText('Title (A–Z)')[0]); // open
-    expect(getByText('✓')).toBeTruthy();
+    // The trigger's chevron plus the active option's check icon.
+    expect(UNSAFE_getAllByType(Svg)).toHaveLength(2);
   });
 });

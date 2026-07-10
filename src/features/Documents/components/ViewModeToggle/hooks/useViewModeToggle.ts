@@ -1,11 +1,14 @@
 import { useCallback, useMemo } from 'react';
 
+import type { IconName } from 'components/Icon/icons';
+
 import type { DocumentViewMode } from '../../../types';
 import { useViewModeToggleStrings } from './useViewModeToggleStrings';
 
 interface ViewModeOption {
   mode: DocumentViewMode;
   label: string;
+  icon: IconName;
 }
 
 export const useViewModeToggle = (
@@ -15,8 +18,8 @@ export const useViewModeToggle = (
 
   const options = useMemo<ViewModeOption[]>(
     () => [
-      { mode: 'list', label: strings.list },
-      { mode: 'grid', label: strings.grid },
+      { mode: 'list', label: strings.list, icon: 'list' },
+      { mode: 'grid', label: strings.grid, icon: 'grid' },
     ],
     [strings],
   );

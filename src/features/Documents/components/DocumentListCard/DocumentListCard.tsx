@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View } from 'react-native';
 
+import { Icon } from 'components/Icon/Icon';
 import { Text } from 'components/Text/Text';
 import type { Document } from 'models/models';
 
@@ -41,12 +42,18 @@ const DocumentListCardComponent = ({ document }: DocumentListCardProps) => {
         </Text>
       </View>
       <View style={styles.footerRow}>
-        <Text size="font-size-xs" color="font-brand" weight="font-weight-medium">
-          {contributorsLabel}
-        </Text>
-        <Text size="font-size-xs" color="font-secondary">
-          {attachmentsLabel}
-        </Text>
+        <View style={styles.footerItem}>
+          <Icon name="users" size="icon-size-xs" color="font-brand" />
+          <Text size="font-size-xs" color="font-brand" weight="font-weight-medium">
+            {contributorsLabel}
+          </Text>
+        </View>
+        <View style={styles.footerItem}>
+          <Icon name="paperclip" size="icon-size-xs" color="font-secondary" />
+          <Text size="font-size-xs" color="font-secondary">
+            {attachmentsLabel}
+          </Text>
+        </View>
       </View>
     </View>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
-import { Text } from 'components/Text/Text';
+import { Icon } from 'components/Icon/Icon';
 
 import type { DocumentViewMode } from '../../types';
 import { useViewModeToggle } from './hooks/useViewModeToggle';
@@ -27,13 +27,13 @@ export const ViewModeToggle = ({ value, onChange }: ViewModeToggleProps) => {
             style={[styles.segment, active && styles.segmentActive]}
             onPress={() => handleSelect(option.mode)}
             accessibilityRole="button"
+            accessibilityLabel={option.label}
             accessibilityState={{ selected: active }}>
-            <Text
-              size="font-size-sm"
-              weight="font-weight-medium"
-              color={active ? 'font-on-brand' : 'font-secondary'}>
-              {option.label}
-            </Text>
+            <Icon
+              name={option.icon}
+              size="icon-size-sm"
+              color={active ? 'font-on-brand' : 'font-secondary'}
+            />
           </TouchableOpacity>
         );
       })}

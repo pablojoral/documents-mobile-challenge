@@ -1,3 +1,3 @@
 export const useAddDocumentButtonStrings = () => ({
-  addDocument: '+ Add document',
+  addDocument: 'Add document',
 });
