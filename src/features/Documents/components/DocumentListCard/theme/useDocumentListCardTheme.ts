@@ -24,6 +24,11 @@ export const useDocumentListCardTheme = () => {
       alignItems: 'center',
       gap: theme.spacing['spacing-sm'],
     },
+    footerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing['spacing-xxs'],
+    },
   });
 
   return { styles, theme };

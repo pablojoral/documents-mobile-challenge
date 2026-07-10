@@ -38,8 +38,6 @@ export const useSortSelector = (
     options,
     currentLabel: strings.options[value],
     title: strings.title,
-    checkMark: strings.checkMark,
-    caret: strings.caret,
     open,
     close,
     handleSelect,

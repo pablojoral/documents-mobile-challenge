@@ -11,7 +11,5 @@ export const useSortSelectorStrings = () => {
   return {
     title: 'Sort by',
     options,
-    checkMark: '✓',
-    caret: '▾',
   };
 };

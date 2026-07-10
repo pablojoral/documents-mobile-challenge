@@ -70,8 +70,8 @@ describe('Documents screen', () => {
 
   it('switches to grid view without losing the document', () => {
     setQuery({ data: [makeDocument({ Title: 'Alpha' })] });
-    const { getByText } = render(<Documents />);
-    fireEvent.press(getByText('Grid'));
+    const { getByText, getByLabelText } = render(<Documents />);
+    fireEvent.press(getByLabelText('Grid'));
     expect(getByText('Alpha')).toBeTruthy();
   });
 

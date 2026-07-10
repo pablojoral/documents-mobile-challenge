@@ -84,7 +84,7 @@ describe('NotificationsModal', () => {
     expect(list.instance.scrollToOffset).toHaveBeenCalledWith({ offset: 0, animated: true });
   });
 
-  it('calls onClose when the backdrop is pressed', () => {
+  it('calls onClose when the close button is pressed', () => {
     const onClose = jest.fn();
     const { getByLabelText } = render(<NotificationsModal visible onClose={onClose} />);
 

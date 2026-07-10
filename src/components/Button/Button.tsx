@@ -3,6 +3,8 @@ import { TouchableOpacity, type TouchableOpacityProps } from 'react-native';
 
 import { Text } from 'components/Text/Text';
 import { ActivityIndicator } from 'components/ActivityIndicator/ActivityIndicator';
+import { Icon } from 'components/Icon/Icon';
+import type { IconName } from 'components/Icon/icons';
 
 import { useButtonTheme, type ButtonVariant } from './theme/useButtonTheme';
 
@@ -13,6 +15,7 @@ interface ButtonProps
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
+  icon?: IconName;
 }
 
 /**
@@ -25,6 +28,7 @@ export const Button = ({
   disabled = false,
   loading = false,
   fullWidth = false,
+  icon,
   onPress,
   ...rest
 }: ButtonProps) => {
@@ -46,9 +50,14 @@ export const Button = ({
       {loading ? (
         <ActivityIndicator color={labelColor} />
       ) : (
-        <Text color={labelColor} weight="font-weight-semibold">
-          {label}
-        </Text>
+        <>
+          {icon ? (
+            <Icon name={icon} size="icon-size-sm" color={labelColor} />
+          ) : null}
+          <Text color={labelColor} weight="font-weight-semibold">
+            {label}
+          </Text>
+        </>
       )}
     </TouchableOpacity>
   );

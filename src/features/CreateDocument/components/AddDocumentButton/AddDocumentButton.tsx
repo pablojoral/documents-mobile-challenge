@@ -16,7 +16,12 @@ export const AddDocumentButton = () => {
 
   return (
     <View style={styles.container}>
-      <Button label={strings.addDocument} onPress={open} fullWidth />
+      <Button
+        label={strings.addDocument}
+        onPress={open}
+        fullWidth
+        icon="plus"
+      />
       <CreateDocumentModal visible={isOpen} onClose={close} />
     </View>
   );

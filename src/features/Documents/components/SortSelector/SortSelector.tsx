@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
 
+import { Icon } from 'components/Icon/Icon';
 import { Text } from 'components/Text/Text';
 
 import type { DocumentSort } from '../../types';
@@ -14,17 +15,8 @@ interface SortSelectorProps {
 
 /** A "Sort by" trigger that opens a bottom-sheet modal of sort options. */
 export const SortSelector = ({ value, onChange }: SortSelectorProps) => {
-  const {
-    isOpen,
-    options,
-    currentLabel,
-    title,
-    checkMark,
-    caret,
-    open,
-    close,
-    handleSelect,
-  } = useSortSelector(value, onChange);
+  const { isOpen, options, currentLabel, title, open, close, handleSelect } =
+    useSortSelector(value, onChange);
   const { styles } = useSortSelectorTheme();
 
   return (
@@ -36,9 +28,7 @@ export const SortSelector = ({ value, onChange }: SortSelectorProps) => {
         <Text size="font-size-sm" weight="font-weight-medium">
           {currentLabel}
         </Text>
-        <Text size="font-size-sm" color="font-secondary">
-          {caret}
-        </Text>
+        <Icon name="chevron-down" size="icon-size-xs" color="font-secondary" />
       </TouchableOpacity>
 
       <Modal
@@ -73,7 +63,9 @@ export const SortSelector = ({ value, onChange }: SortSelectorProps) => {
                     }>
                     {option.label}
                   </Text>
-                  {active ? <Text color="font-brand">{checkMark}</Text> : null}
+                  {active ? (
+                    <Icon name="check" size="icon-size-sm" color="font-brand" />
+                  ) : null}
                 </TouchableOpacity>
               );
             })}

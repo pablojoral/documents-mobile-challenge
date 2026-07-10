@@ -18,7 +18,7 @@ describe('AddDocumentButton', () => {
 
   it('renders the trigger button', () => {
     const { getByText } = render(<AddDocumentButton />);
-    expect(getByText('+ Add document')).toBeTruthy();
+    expect(getByText('Add document')).toBeTruthy();
   });
 
   it('renders the modal closed initially', () => {
@@ -31,7 +31,7 @@ describe('AddDocumentButton', () => {
 
   it('opens the modal when the button is pressed', () => {
     const { getByText } = render(<AddDocumentButton />);
-    fireEvent.press(getByText('+ Add document'));
+    fireEvent.press(getByText('Add document'));
     expect(CreateDocumentModal).toHaveBeenLastCalledWith(
       expect.objectContaining({ visible: true }),
       undefined,
@@ -40,7 +40,7 @@ describe('AddDocumentButton', () => {
 
   it('closes the modal when onClose is called', () => {
     const { getByText } = render(<AddDocumentButton />);
-    fireEvent.press(getByText('+ Add document'));
+    fireEvent.press(getByText('Add document'));
 
     const { onClose } = CreateDocumentModal.mock.calls[
       CreateDocumentModal.mock.calls.length - 1

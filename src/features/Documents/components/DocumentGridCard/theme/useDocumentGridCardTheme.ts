@@ -18,6 +18,11 @@ export const useDocumentGridCardTheme = () => {
     footer: {
       gap: theme.spacing['spacing-xxs'],
     },
+    footerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing['spacing-xxs'],
+    },
   });
 
   return { styles, theme };

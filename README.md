@@ -142,7 +142,7 @@ Real-time new-document notifications are consumed through `src/services/ws/`:
 
 ## Create document
 
-A "+ Add document" button at the bottom of the Documents screen
+An "Add document" button (with a leading plus icon) at the bottom of the Documents screen
 (`features/CreateDocument/components/AddDocumentButton`) opens a bottom-sheet form
 (`CreateDocumentModal`) built on the existing `Modal`, `TextInput`, and `DocumentInput` primitives.
 
@@ -177,6 +177,7 @@ undifferentiated work. Each is justified here as it is introduced.
 | `react-hook-form` | Form state/validation for the create-document modal, driven through `Controller` since the form fields are controlled components, not native-ref inputs. | Hand-rolled `useState` + manual validation per field — more boilerplate and easy to let field state and error state drift apart; Formik — heavier, less idiomatic with controlled RN components. |
 | `zod` | Single source of truth for the create-document validation rules (name length, version format, file size), parsed once instead of scattered `if` checks. | Yup — comparable, but `zod`'s TypeScript-first inference (`z.infer`) fits this codebase's type-first style better. Hand-rolled validators — more code, no static typing of the validated shape. |
 | `@hookform/resolvers` | Adapter that feeds a `zod` schema into `react-hook-form`'s `resolver` option, so validation logic lives in one schema instead of being duplicated between the two libraries. | Writing a custom RHF resolver by hand — reinvents what this package already does. |
+| `react-native-svg` | Rendering primitive backing the app's themed `Icon` component (`src/components/Icon`) — a handful of hand-authored Feather-style icons (list, grid, bell, chevron, check, close, plus) driven by the existing `theme.iconSize` / `theme.fontColor` tokens. Has first-class Fabric/New Architecture support. | An icon-font package (e.g. `@react-native-vector-icons/*`) — bundles an entire font family for the ~7 glyphs actually used, and community icon-font packages have historically lagged on New Architecture support. |
 
 ## Getting started
 
