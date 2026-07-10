@@ -19,21 +19,8 @@ export const useDocumentGridCardTheme = () => {
       padding: theme.spacing['spacing-sm'],
       gap: theme.spacing['spacing-xs'],
     },
-    metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing['spacing-sm'],
-    },
     footer: {
       gap: theme.spacing['spacing-xxs'],
-    },
-    footerItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing['spacing-xxs'],
-    },
-    footerItemLabel: {
-      flexShrink: 1,
     },
   });
 

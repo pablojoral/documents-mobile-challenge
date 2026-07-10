@@ -17,27 +17,10 @@ export const useDocumentListCardTheme = () => {
     header: {
       gap: theme.spacing['spacing-xs'],
     },
-    metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing['spacing-sm'],
-    },
     footerRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: theme.spacing['spacing-sm'],
-    },
-    footerColumn: {
-      flex: 1,
-      gap: theme.spacing['spacing-xxs'],
-    },
-    footerColumnHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing['spacing-xxs'],
-    },
-    footerItemLabel: {
-      flexShrink: 1,
     },
   });
 
