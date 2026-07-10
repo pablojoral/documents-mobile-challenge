@@ -14,7 +14,7 @@ describe('useAddDocument', () => {
     const { result } = renderHookWithQuery(() => useAddDocument());
 
     await act(async () => {
-      await result.current.mutateAsync({ name: 'Report', version: '1.0.0', file: validFile });
+      await result.current.mutateAsync({ name: 'Report', version: '1.0.0', files: [validFile] });
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -29,7 +29,7 @@ describe('useAddDocument', () => {
     client.setQueryData(qk.documents.list(), [existing]);
 
     await act(async () => {
-      await result.current.mutateAsync({ name: 'Report', version: '1.2.3', file: validFile });
+      await result.current.mutateAsync({ name: 'Report', version: '1.2.3', files: [validFile] });
     });
 
     const cached = client.getQueryData(qk.documents.list());
@@ -44,12 +44,29 @@ describe('useAddDocument', () => {
     ]);
   });
 
+  it('maps every attached file to the Attachments array', async () => {
+    const secondFile = { uri: 'file:///b.pdf', name: 'b.pdf', size: 2048, type: 'application/pdf' };
+    const { result, client } = renderHookWithQuery(() => useAddDocument());
+    client.setQueryDefaults(qk.documents.list(), { gcTime: Infinity });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        name: 'Report',
+        version: '1.0.0',
+        files: [validFile, secondFile],
+      });
+    });
+
+    const [created] = client.getQueryData<Document[]>(qk.documents.list())!;
+    expect(created.Attachments).toEqual(['a.pdf', 'b.pdf']);
+  });
+
   it('creates the cache entry when none exists yet', async () => {
     const { result, client } = renderHookWithQuery(() => useAddDocument());
     client.setQueryDefaults(qk.documents.list(), { gcTime: Infinity });
 
     await act(async () => {
-      await result.current.mutateAsync({ name: 'Report', version: '1.0.0', file: validFile });
+      await result.current.mutateAsync({ name: 'Report', version: '1.0.0', files: [validFile] });
     });
 
     const cached = client.getQueryData(qk.documents.list());
@@ -61,7 +78,7 @@ describe('useAddDocument', () => {
     client.setQueryDefaults(qk.documents.list(), { gcTime: Infinity });
 
     await act(async () => {
-      await result.current.mutateAsync({ name: 'Report', version: '1.0.0', file: validFile });
+      await result.current.mutateAsync({ name: 'Report', version: '1.0.0', files: [validFile] });
     });
 
     const [created] = client.getQueryData<Document[]>(qk.documents.list())!;

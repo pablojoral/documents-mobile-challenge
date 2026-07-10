@@ -37,7 +37,7 @@ export const CreateDocumentModal = ({ visible, onClose }: CreateDocumentModalPro
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Controller control={control} name="name" render={renderNameField} />
         <Controller control={control} name="version" render={renderVersionField} />
-        <Controller control={control} name="file" render={renderFileField} />
+        <Controller control={control} name="files" render={renderFileField} />
         <Button
           label={strings.submitLabel}
           onPress={handleFormSubmit}

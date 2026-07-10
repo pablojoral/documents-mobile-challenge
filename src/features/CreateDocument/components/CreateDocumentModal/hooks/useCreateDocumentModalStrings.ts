@@ -4,7 +4,9 @@ export const useCreateDocumentModalStrings = () => ({
   nameLabel: 'Name',
   versionLabel: 'Version',
   versionPlaceholder: '1.0.0',
-  fileLabel: 'Attachment',
+  fileLabel: 'Attachments',
   pickFileLabel: 'Choose file',
+  removeFileLabel: 'Remove',
+  tooLargeFileLabel: 'Too large (max 10 MB)',
   submitLabel: 'Create document',
 });

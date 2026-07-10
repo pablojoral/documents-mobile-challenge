@@ -42,60 +42,144 @@ describe('DocumentInput', () => {
   it('renders the label and pick button', () => {
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={jest.fn()}
       />,
     );
-    expect(getByText('Attachment')).toBeTruthy();
+    expect(getByText('Attachments')).toBeTruthy();
     expect(getByText('Choose file')).toBeTruthy();
   });
 
-  it('renders the selected file name when value is set', () => {
+  it('renders each selected file name when value is set', () => {
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={{ uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' }}
+        removeLabel="Remove"
+        value={[
+          { uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' },
+          { uri: 'file:///b.pdf', name: 'b.pdf', size: 20, type: 'application/pdf' },
+        ]}
         onChange={jest.fn()}
       />,
     );
     expect(getByText('a.pdf')).toBeTruthy();
+    expect(getByText('b.pdf')).toBeTruthy();
   });
 
-  it('does not render a file name when value is null', () => {
+  it('does not render a file name when value is empty', () => {
     const { queryByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={jest.fn()}
       />,
     );
     expect(queryByText('a.pdf')).toBeNull();
   });
 
-  it('calls onChange with the picked file on success', async () => {
+  it('calls onChange with the picked file appended on success', async () => {
     mockPick.mockResolvedValue([makeDocumentPickerResponse()]);
     const onChange = jest.fn();
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={onChange}
       />,
     );
     fireEvent.press(getByText('Choose file'));
     await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith({
-        uri: 'file:///a.pdf',
-        name: 'a.pdf',
-        size: 10,
-        type: 'application/pdf',
-      }),
+      expect(onChange).toHaveBeenCalledWith([
+        { uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' },
+      ]),
     );
+  });
+
+  it('removes a file when its remove action is pressed', () => {
+    const onChange = jest.fn();
+    const { getByLabelText } = render(
+      <DocumentInput
+        label="Attachments"
+        pickLabel="Choose file"
+        removeLabel="Remove"
+        value={[{ uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' }]}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.press(getByLabelText('Remove a.pdf'));
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it('shows the too-large caption next to a file exceeding maxFileSize', () => {
+    const { getByText } = render(
+      <DocumentInput
+        label="Attachments"
+        pickLabel="Choose file"
+        removeLabel="Remove"
+        value={[
+          { uri: 'file:///a.pdf', name: 'a.pdf', size: 20, type: 'application/pdf' },
+          { uri: 'file:///b.pdf', name: 'b.pdf', size: 5, type: 'application/pdf' },
+        ]}
+        onChange={jest.fn()}
+        maxFileSize={10}
+        tooLargeLabel="Too large"
+      />,
+    );
+    expect(getByText('a.pdf')).toBeTruthy();
+    expect(getByText('Too large')).toBeTruthy();
+    expect(getByText('b.pdf')).toBeTruthy();
+  });
+
+  it('does not show the too-large caption for a file within maxFileSize', () => {
+    const { queryByText } = render(
+      <DocumentInput
+        label="Attachments"
+        pickLabel="Choose file"
+        removeLabel="Remove"
+        value={[{ uri: 'file:///a.pdf', name: 'a.pdf', size: 5, type: 'application/pdf' }]}
+        onChange={jest.fn()}
+        maxFileSize={10}
+        tooLargeLabel="Too large"
+      />,
+    );
+    expect(queryByText('Too large')).toBeNull();
+  });
+
+  it('does not flag any file when maxFileSize is not set', () => {
+    const { queryByText } = render(
+      <DocumentInput
+        label="Attachments"
+        pickLabel="Choose file"
+        removeLabel="Remove"
+        value={[{ uri: 'file:///a.pdf', name: 'a.pdf', size: 999_999_999, type: 'application/pdf' }]}
+        onChange={jest.fn()}
+        tooLargeLabel="Too large"
+      />,
+    );
+    expect(queryByText('Too large')).toBeNull();
+  });
+
+  it('disables the pick button once maxFiles is reached', () => {
+    const { getByText } = render(
+      <DocumentInput
+        label="Attachments"
+        pickLabel="Choose file"
+        removeLabel="Remove"
+        value={[{ uri: 'file:///a.pdf', name: 'a.pdf', size: 10, type: 'application/pdf' }]}
+        onChange={jest.fn()}
+        maxFiles={1}
+      />,
+    );
+    fireEvent.press(getByText('Choose file'));
+    expect(mockPick).not.toHaveBeenCalled();
   });
 
   it('does not call onChange or onPickError on cancellation', async () => {
@@ -105,9 +189,10 @@ describe('DocumentInput', () => {
     const onPickError = jest.fn();
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={onChange}
         onPickError={onPickError}
       />,
@@ -126,9 +211,10 @@ describe('DocumentInput', () => {
     const onPickError = jest.fn();
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={onChange}
         onPickError={onPickError}
       />,
@@ -141,9 +227,10 @@ describe('DocumentInput', () => {
   it('renders the error message when error is set', () => {
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={jest.fn()}
         error="An attachment is required"
       />,
@@ -154,9 +241,10 @@ describe('DocumentInput', () => {
   it('does not open the picker when disabled', () => {
     const { getByText } = render(
       <DocumentInput
-        label="Attachment"
+        label="Attachments"
         pickLabel="Choose file"
-        value={null}
+        removeLabel="Remove"
+        value={[]}
         onChange={jest.fn()}
         disabled
       />,
