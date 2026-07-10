@@ -1,10 +1,14 @@
 jest.mock('query/Documents/useDocuments');
+jest.mock('features/CreateDocument/components/AddDocumentButton/AddDocumentButton', () => ({
+  AddDocumentButton: jest.fn(() => null),
+}));
 
 import React from 'react';
 import { ActivityIndicator } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { useDocuments } from 'query/Documents/useDocuments';
+import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
 import { makeDocument } from 'test/fixtures';
 import { Documents } from './Documents';
 
@@ -69,5 +73,11 @@ describe('Documents screen', () => {
     const { getByText } = render(<Documents />);
     fireEvent.press(getByText('Grid'));
     expect(getByText('Alpha')).toBeTruthy();
+  });
+
+  it('renders the add-document button', () => {
+    setQuery({ data: [] });
+    render(<Documents />);
+    expect(jest.mocked(AddDocumentButton)).toHaveBeenCalled();
   });
 });

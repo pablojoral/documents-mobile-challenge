@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text as RNText } from 'react-native';
+import { KeyboardAvoidingView, Text as RNText } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { Modal } from './Modal';
@@ -44,5 +44,23 @@ describe('Modal', () => {
     );
     fireEvent.press(getByText('Close'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not wrap in a KeyboardAvoidingView by default', () => {
+    const { UNSAFE_queryByType } = render(
+      <Modal visible onClose={jest.fn()} title="Add document" closeLabel="Close">
+        <RNText>Form body</RNText>
+      </Modal>,
+    );
+    expect(UNSAFE_queryByType(KeyboardAvoidingView)).toBeNull();
+  });
+
+  it('wraps in a KeyboardAvoidingView when avoidsKeyboard is set', () => {
+    const { UNSAFE_queryByType } = render(
+      <Modal visible onClose={jest.fn()} title="Add document" closeLabel="Close" avoidsKeyboard>
+        <RNText>Form body</RNText>
+      </Modal>,
+    );
+    expect(UNSAFE_queryByType(KeyboardAvoidingView)).toBeTruthy();
   });
 });

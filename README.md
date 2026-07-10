@@ -31,8 +31,8 @@ effects. Guiding decisions:
 - **Thin service layer over one HTTP client.** All REST calls go through a single Axios instance
   (`services/api`), wrapped by small service classes — one place for base URL, headers, and errors.
 - **TanStack Query for server state.** Caching, background refetch, and request de-duplication for
-  the documents feed come for free, and mutations (create document) invalidate the feed to keep the
-  UI consistent.
+  the documents feed come for free. Creating a document is the one mutation that deliberately does
+  *not* invalidate the feed — see the "Create document" decision below for why.
 - **WebSocket via a dedicated `ws` client.** Real-time notifications are consumed through a small
   `ws` client wrapper around the built-in `WebSocket` API, encapsulating connect, reconnect, and
   message parsing behind a single interface. New-document events invalidate/prepend to the cached
@@ -46,9 +46,9 @@ effects. Guiding decisions:
 The base design system is in place: shared, themed primitives that screens compose from instead of
 raw React Native components and ad-hoc style values.
 
-- **Primitives** (`src/components/`) — `Text`, `Button`, and `ActivityIndicator`, each with a
-  co-located `use<Name>Theme` hook and tests. Features build on these rather than importing RN
-  primitives directly.
+- **Primitives** (`src/components/`) — `Text`, `Button`, `ActivityIndicator`, `Modal`, `TextInput`,
+  and `DocumentInput` (a labelled native file picker), each with a co-located `use<Name>Theme` hook
+  and tests. Features build on these rather than importing RN primitives directly.
 - **Design tokens** (`src/theme/tokens.ts`) — the single source of truth for spacing, colors,
   corner radii, typography, and border widths. Components never use raw numbers or hex values; token
   *names* are stable across light/dark and only the color *values* differ per scheme.
@@ -140,6 +140,26 @@ Real-time new-document notifications are consumed through `src/services/ws/`:
   calls `FlatList.scrollToOffset({ offset: 0, animated: true })` via a ref owned by
   `useNotificationsModal`, jumping straight to the newest notifications.
 
+## Create document
+
+A "+ Add document" button at the bottom of the Documents screen
+(`features/CreateDocument/components/AddDocumentButton`) opens a bottom-sheet form
+(`CreateDocumentModal`) built on the existing `Modal`, `TextInput`, and `DocumentInput` primitives.
+
+- **`react-hook-form` + `zod`.** Fields are bound via RHF's `Controller` (needed since `TextInput`/
+  `DocumentInput` are controlled components, not ref-based). A single `zod` schema
+  (`features/CreateDocument/schema.ts`) drives all validation: name ≤100 chars, version matching
+  `0-99.0-99.0-99`, file required and ≤10 MB.
+- **File size is validated after picking, not by the OS picker** — the native picker only filters
+  by MIME type, so the 10 MB check happens against the `size` it returns once a file is chosen.
+- **Decision — document creation is entirely client-side, no network call.** The challenge server's
+  `GET /documents` has no persistence or `POST` handler; it just returns fresh random fake data on
+  every call. So `query/Documents/useAddDocument.ts` builds the `Document` locally and writes it into
+  the query cache via `setQueryData`, and deliberately never invalidates (a refetch would replace the
+  cache with unrelated random documents and lose the one just "created").
+- **No "current user" concept exists yet**, so new documents get a placeholder contributor
+  (`{ ID: 'local-user', Name: 'You' }`) — revisit once/if auth is introduced.
+
 ## Tech choices
 
 The bias is to write the code myself; libraries are added only where they remove meaningful,
@@ -153,6 +173,10 @@ undifferentiated work. Each is justified here as it is introduced.
 | `ws` client (wrapper over native `WebSocket`) | Consume the real-time notifications feed with a basic primitive, wrapped for connect/reconnect and message parsing, per the challenge constraint. | `socket.io-client` — unnecessary and protocol-specific for a plain WS feed. |
 | `zustand` | Global client state for notifications (pushed over the socket, read from anywhere in the tree): less boilerplate than Redux, widely adopted, simple to use, and fast. | Redux/RTK (more ceremony — actions, reducers, providers — for a single small slice of state); React Context — re-renders every consumer on any change, no built-in selectors. |
 | `@testing-library/react-native` | Render and drive components/hooks by user-visible behavior (text/role/accessibility). | Bare `react-test-renderer` — no user-centric queries; discouraged for component tests. |
+| `@react-native-documents/picker` | Native file picker backing `DocumentInput`'s "attach a file" flow, needed for the create-document feature. This is a bare RN 0.86 app with the New Architecture (Fabric/TurboModules) enabled, and this package is the actively maintained fork with first-class New Arch support. | `react-native-document-picker` — the older, more widely known package; only gained New Arch support in later 9.x releases, judged less safe for this app's RN version. `expo-document-picker` — Expo-only, not usable without pulling in Expo modules on a bare-RN project. |
+| `react-hook-form` | Form state/validation for the create-document modal, driven through `Controller` since the form fields are controlled components, not native-ref inputs. | Hand-rolled `useState` + manual validation per field — more boilerplate and easy to let field state and error state drift apart; Formik — heavier, less idiomatic with controlled RN components. |
+| `zod` | Single source of truth for the create-document validation rules (name length, version format, file size), parsed once instead of scattered `if` checks. | Yup — comparable, but `zod`'s TypeScript-first inference (`z.infer`) fits this codebase's type-first style better. Hand-rolled validators — more code, no static typing of the validated shape. |
+| `@hookform/resolvers` | Adapter that feeds a `zod` schema into `react-hook-form`'s `resolver` option, so validation logic lives in one schema instead of being duplicated between the two libraries. | Writing a custom RHF resolver by hand — reinvents what this package already does. |
 
 ## Getting started
 
@@ -204,8 +228,9 @@ yarn test        # or: yarn jest
 [React Native Testing Library](https://callstack.github.io/react-native-testing-library/) (RNTL,
 v13) for anything that renders. Config lives in `jest.config.js` + `jest.setup.ts`.
 
-**In place today.** The harness, documents-feed, WebSocket-client, and notifications-store suites
-are implemented — 22 test files run green across every layer below. Shared helpers live in
+**In place today.** The harness, documents-feed, WebSocket-client, notifications-store, and
+create-document suites are implemented — 36 test files run green across every layer below. Shared
+helpers live in
 `src/test/`: `makeDocument` / `makeUser` / `makeNotification` fixtures (`fixtures.ts`),
 `renderWithQuery` / `renderHookWithQuery`
 (`renderWithQuery.tsx`), which wrap the unit in a fresh `QueryClient` (with `retry: false`) so
@@ -228,10 +253,15 @@ provider.
 - **Unit** — pure utilities: relative-date formatting (`formatRelativeDate`) and client-side
   `sortDocuments`.
 - **Service** — `DocumentsService` with `apiClient` mocked (request path + response passthrough).
-- **Hooks** — the `useDocuments` query hook with the service mocked, plus the screen/card logic and
-  strings hooks (`useDocumentsScreen`, `useDocumentCard`, …). _(Create-document mutation: planned.)_
+- **Hooks** — the `useDocuments` query hook with the service mocked, the `useAddDocument` mutation
+  (asserted against a real `QueryClient` via `renderHookWithQuery` — no service to mock, since it
+  never calls the network), plus the screen/card logic and strings hooks (`useDocumentsScreen`,
+  `useDocumentCard`, …).
 - **Component** — RNTL render tests for the shared primitives (`Text`, `Button`,
-  `ActivityIndicator`), the list/grid cards, and the empty / error / toggle / sort states.
+  `ActivityIndicator`, `Modal`, `TextInput`, `DocumentInput`), the list/grid cards, the empty /
+  error / toggle / sort states, and the create-document flow (`CreateDocumentModal` — validation,
+  submission, and reset-on-close, with `useAddDocument` and the native picker mocked;
+  `AddDocumentButton` — open/close wiring, with `CreateDocumentModal` mocked).
 - **Transport** — `WebSocketClient` (connect/reconnect/parse/listeners) against a mock WebSocket.
 - **State** — `useNotificationsStore` (add/dedup/read/clear/selector) and
   `useNotificationsSocketSync` (connects the socket and forwards messages into the store, stops on
