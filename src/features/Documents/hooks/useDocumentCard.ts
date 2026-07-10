@@ -5,7 +5,8 @@ import { useDocumentCardStrings } from './useDocumentCardStrings';
 
 /**
  * Derives the display fields shown by both the list and grid document cards
- * from a raw `Document` (formatted date, contributor summary, counts, version).
+ * from a raw `Document` (formatted date, contributor summary/names, attachment
+ * names/count, version).
  */
 export const useDocumentCard = (document: Document) => {
   const strings = useDocumentCardStrings();
@@ -24,7 +25,10 @@ export const useDocumentCard = (document: Document) => {
     title: document.Title,
     dateLabel: formatRelativeDate(document.CreatedAt),
     contributorSummary,
-    contributorsLabel: strings.contributors(contributorCount),
+    contributorNames: document.Contributors.map(user => user.Name),
+    attachmentNames: document.Attachments,
+    contributorsTitle: strings.contributorsTitle,
+    attachmentsTitle: strings.attachmentsTitle,
     attachmentsLabel: strings.attachments(attachmentCount),
     versionLabel: strings.version(document.Version),
     contributorCount,

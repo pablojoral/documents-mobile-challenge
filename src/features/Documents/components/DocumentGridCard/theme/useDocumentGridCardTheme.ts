@@ -8,12 +8,21 @@ export const useDocumentGridCardTheme = () => {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
+      // Caps growth at one grid cell (numColumns is 2, see useDocumentsScreen)
+      // so a lone odd-count card keeps its normal cell size instead of
+      // stretching to fill the row.
+      maxWidth: '50%',
       backgroundColor: theme.surfaceColor['surface-primary'],
       borderRadius: theme.cornerRad['corner-rad-md'],
       borderWidth: theme.borderWidth['border-width-hairline'],
       borderColor: theme.borderColor['border-secondary'],
       padding: theme.spacing['spacing-sm'],
       gap: theme.spacing['spacing-xs'],
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing['spacing-sm'],
     },
     footer: {
       gap: theme.spacing['spacing-xxs'],
@@ -22,6 +31,9 @@ export const useDocumentGridCardTheme = () => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing['spacing-xxs'],
+    },
+    footerItemLabel: {
+      flexShrink: 1,
     },
   });
 

@@ -24,7 +24,7 @@ describe('useDocumentCard', () => {
       }),
     );
     expect(card.contributorSummary).toBe('Ada +2');
-    expect(card.contributorsLabel).toBe('3 contributors');
+    expect(card.contributorNames).toEqual(['Ada', 'Bob', 'Cy']);
     expect(card.contributorCount).toBe(3);
   });
 
@@ -33,17 +33,25 @@ describe('useDocumentCard', () => {
       makeDocument({ Contributors: [makeUser({ Name: 'Solo' })] }),
     );
     expect(card.contributorSummary).toBe('Solo');
+    expect(card.contributorNames).toEqual(['Solo']);
   });
 
   it('handles zero contributors', () => {
     const card = cardFor(makeDocument({ Contributors: [] }));
     expect(card.contributorSummary).toBe('');
-    expect(card.contributorsLabel).toBe('0 contributors');
+    expect(card.contributorNames).toEqual([]);
   });
 
-  it('reports the attachment count/label', () => {
+  it('reports the attachment count/label and names', () => {
     const card = cardFor(makeDocument({ Attachments: ['a', 'b'] }));
     expect(card.attachmentCount).toBe(2);
     expect(card.attachmentsLabel).toBe('2 attachments');
+    expect(card.attachmentNames).toEqual(['a', 'b']);
+  });
+
+  it('exposes the footer column titles', () => {
+    const card = cardFor(makeDocument());
+    expect(card.contributorsTitle).toBe('Contributors');
+    expect(card.attachmentsTitle).toBe('Attachments');
   });
 });

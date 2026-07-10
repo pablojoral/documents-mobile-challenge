@@ -13,8 +13,13 @@ interface DocumentGridCardProps {
 }
 
 const DocumentGridCardComponent = ({ document }: DocumentGridCardProps) => {
-  const { title, dateLabel, contributorsLabel, attachmentsLabel } =
-    useDocumentCard(document);
+  const {
+    title,
+    dateLabel,
+    contributorSummary,
+    versionLabel,
+    attachmentsLabel,
+  } = useDocumentCard(document);
   const { styles } = useDocumentGridCardTheme();
 
   return (
@@ -22,16 +27,28 @@ const DocumentGridCardComponent = ({ document }: DocumentGridCardProps) => {
       <Text size="font-size-sm" weight="font-weight-semibold" numberOfLines={2}>
         {title}
       </Text>
-      <Text size="font-size-xs" color="font-secondary">
-        {dateLabel}
-      </Text>
-      <View style={styles.footer}>
+      <View style={styles.metaRow}>
+        <Text size="font-size-xs" color="font-secondary">
+          {dateLabel}
+        </Text>
+        <Text size="font-size-xs" color="font-secondary">
+          {versionLabel}
+        </Text>
+      </View>
+      {contributorSummary ? (
         <View style={styles.footerItem}>
           <Icon name="users" size="icon-size-xs" color="font-brand" />
-          <Text size="font-size-xs" color="font-brand" weight="font-weight-medium">
-            {contributorsLabel}
+          <Text
+            style={styles.footerItemLabel}
+            size="font-size-xs"
+            color="font-secondary"
+            numberOfLines={1}
+          >
+            {contributorSummary}
           </Text>
         </View>
+      ) : null}
+      <View style={styles.footer}>
         <View style={styles.footerItem}>
           <Icon name="paperclip" size="icon-size-xs" color="font-secondary" />
           <Text size="font-size-xs" color="font-secondary">

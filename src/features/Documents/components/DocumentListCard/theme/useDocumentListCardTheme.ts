@@ -12,6 +12,9 @@ export const useDocumentListCardTheme = () => {
       borderWidth: theme.borderWidth['border-width-hairline'],
       borderColor: theme.borderColor['border-secondary'],
       padding: theme.spacing['spacing-md'],
+      gap: theme.spacing['spacing-sm'],
+    },
+    header: {
       gap: theme.spacing['spacing-xs'],
     },
     metaRow: {
@@ -21,13 +24,20 @@ export const useDocumentListCardTheme = () => {
     },
     footerRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: theme.spacing['spacing-sm'],
     },
-    footerItem: {
+    footerColumn: {
+      flex: 1,
+      gap: theme.spacing['spacing-xxs'],
+    },
+    footerColumnHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing['spacing-xxs'],
+    },
+    footerItemLabel: {
+      flexShrink: 1,
     },
   });
 
