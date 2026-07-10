@@ -19,4 +19,9 @@ describe('useDocumentCardStrings', () => {
     expect(strings().contributorsTitle).toBe('Contributors');
     expect(strings().attachmentsTitle).toBe('Attachments');
   });
+
+  it('builds the share label and message', () => {
+    expect(strings().shareLabel('Report')).toBe('Share Report');
+    expect(strings().shareMessage('Report', 'v2.1.0')).toBe('Report (v2.1.0)');
+  });
 });

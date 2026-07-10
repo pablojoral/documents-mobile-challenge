@@ -1,10 +1,22 @@
-import { renderHook } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
+import { Share } from 'react-native';
+import { trigger } from 'react-native-haptic-feedback';
 
 import { makeDocument, makeUser } from 'test/fixtures';
 import { useDocumentCard } from './useDocumentCard';
 
+const shareSpy = jest
+  .spyOn(Share, 'share')
+  .mockImplementation(() => Promise.resolve({ action: 'sharedAction' }));
+const triggerMock = trigger as jest.Mock;
+
 const cardFor = (document: ReturnType<typeof makeDocument>) =>
   renderHook(() => useDocumentCard(document)).result.current;
+
+beforeEach(() => {
+  shareSpy.mockClear();
+  triggerMock.mockClear();
+});
 
 describe('useDocumentCard', () => {
   it('passes through the title and version', () => {
@@ -53,5 +65,29 @@ describe('useDocumentCard', () => {
     const card = cardFor(makeDocument());
     expect(card.contributorsTitle).toBe('Contributors');
     expect(card.attachmentsTitle).toBe('Attachments');
+  });
+
+  it('exposes the share label for the document', () => {
+    const card = cardFor(makeDocument({ Title: 'Report' }));
+    expect(card.shareLabel).toBe('Share Report');
+  });
+
+  it('shares the title and version via the native share sheet', () => {
+    const card = cardFor(makeDocument({ Title: 'Report', Version: '2.1.0' }));
+
+    act(() => card.handleShare());
+
+    expect(shareSpy).toHaveBeenCalledWith({
+      title: 'Report',
+      message: 'Report (v2.1.0)',
+    });
+  });
+
+  it('triggers a haptic when sharing', () => {
+    const card = cardFor(makeDocument());
+
+    act(() => card.handleShare());
+
+    expect(triggerMock).toHaveBeenCalledWith('impactHeavy');
   });
 });

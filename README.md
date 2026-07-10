@@ -163,6 +163,21 @@ An "Add document" button (with a leading plus icon) at the bottom of the Documen
 - **No "current user" concept exists yet**, so new documents get a placeholder contributor
   (`{ ID: 'local-user', Name: 'You' }`) — revisit once/if auth is introduced.
 
+## Share document
+
+Long-pressing a `DocumentListCard` or `DocumentGridCard` opens the OS-native share sheet
+(`Share.share` from `react-native`) with the document's title and version.
+
+- **Long-press, not a visible button.** Both cards are already tappable-sized list/grid items with
+  no free chrome for a persistent icon button without reflowing the layout; `onLongPress` reuses the
+  existing touch target instead of adding one.
+- **`Pressable`, not `TouchableOpacity`.** The only intended feedback is a haptic tick
+  (`react-native-haptic-feedback`, fired in `handleShare`), not a visual opacity dim — `Pressable`
+  adds no feedback of its own, unlike `TouchableOpacity`.
+- **Logic lives in `useDocumentCard`**, the hook already shared by both card variants — `handleShare`
+  and the `shareLabel` (used as the `accessibilityLabel`) are added there rather than duplicated per
+  card, consistent with how the rest of the card's derived fields are centralized.
+
 ## Tech choices
 
 The bias is to write the code myself; libraries are added only where they remove meaningful,
@@ -181,6 +196,7 @@ undifferentiated work. Each is justified here as it is introduced.
 | `zod` | Single source of truth for the create-document validation rules (name length, version format, file size), parsed once instead of scattered `if` checks. | Yup — comparable, but `zod`'s TypeScript-first inference (`z.infer`) fits this codebase's type-first style better. Hand-rolled validators — more code, no static typing of the validated shape. |
 | `@hookform/resolvers` | Adapter that feeds a `zod` schema into `react-hook-form`'s `resolver` option, so validation logic lives in one schema instead of being duplicated between the two libraries. | Writing a custom RHF resolver by hand — reinvents what this package already does. |
 | `react-native-svg` | Rendering primitive backing the app's themed `Icon` component (`src/components/Icon`) — a handful of hand-authored Feather-style icons (list, grid, bell, chevron, check, close, plus) driven by the existing `theme.iconSize` / `theme.fontColor` tokens. Has first-class Fabric/New Architecture support. | An icon-font package (e.g. `@react-native-vector-icons/*`) — bundles an entire font family for the ~7 glyphs actually used, and community icon-font packages have historically lagged on New Architecture support. |
+| `react-native-haptic-feedback` | Fires a Taptic Engine / vibration-motor tick on card long-press — no such primitive exists in RN core or `Pressable`. Actively maintained with New Architecture support. | RN core `Vibration.vibrate()` — no native dep, but reads as a buzz on iOS rather than a tap. `expo-haptics` — Expo-only, unusable in this bare-RN app. |
 
 ## Getting started
 

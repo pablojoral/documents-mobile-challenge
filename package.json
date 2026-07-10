@@ -17,6 +17,7 @@
     "react": "19.2.3",
     "react-hook-form": "^7.81.0",
     "react-native": "0.86.0",
+    "react-native-haptic-feedback": "^3.0.0",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-svg": "^15.15.5",
     "zod": "^4.4.3",
