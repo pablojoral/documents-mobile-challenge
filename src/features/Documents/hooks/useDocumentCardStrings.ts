@@ -10,5 +10,8 @@ export const useDocumentCardStrings = () => {
     andOthers: (count: number) => `+${count}`,
     contributorsTitle: 'Contributors',
     attachmentsTitle: 'Attachments',
+    shareLabel: (title: string) => `Share ${title}`,
+    shareMessage: (title: string, versionLabel: string) =>
+      `${title} (${versionLabel})`,
   };
 };

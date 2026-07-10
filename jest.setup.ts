@@ -15,3 +15,10 @@ jest.mock('@react-native-documents/picker', () => ({
   errorCodes: { OPERATION_CANCELED: 'OPERATION_CANCELED' },
   types: { allFiles: '*/*' },
 }));
+
+// This native module has no TurboModule available under Jest. Tests that
+// need to assert a haptic was triggered (useDocumentCard, …) override this
+// with their own `jest.mock('react-native-haptic-feedback', …)`.
+jest.mock('react-native-haptic-feedback', () => ({
+  trigger: jest.fn(),
+}));

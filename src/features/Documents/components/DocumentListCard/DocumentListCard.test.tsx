@@ -1,8 +1,17 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
+import { Share } from 'react-native';
 
 import { makeDocument, makeUser } from 'test/fixtures';
 import { DocumentListCard } from './DocumentListCard';
+
+const shareSpy = jest
+  .spyOn(Share, 'share')
+  .mockImplementation(() => Promise.resolve({ action: 'sharedAction' }));
+
+beforeEach(() => {
+  shareSpy.mockClear();
+});
 
 describe('DocumentListCard', () => {
   it('renders the title, meta row, and vertical contributor/attachment lists with titles', () => {
@@ -45,5 +54,18 @@ describe('DocumentListCard', () => {
     expect(getByText('Empty Footer Doc')).toBeTruthy();
     expect(queryByText('Contributors')).toBeNull();
     expect(queryByText('Attachments')).toBeNull();
+  });
+
+  it('opens the native share sheet on long press', () => {
+    const document = makeDocument({ Title: 'Quarterly Report', Version: '2.0.0' });
+
+    const { getByLabelText } = render(<DocumentListCard document={document} />);
+
+    fireEvent(getByLabelText('Share Quarterly Report'), 'longPress');
+
+    expect(shareSpy).toHaveBeenCalledWith({
+      title: 'Quarterly Report',
+      message: 'Quarterly Report (v2.0.0)',
+    });
   });
 });

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { IconLabel } from 'components/IconLabel/IconLabel';
 import { Text } from 'components/Text/Text';
@@ -20,11 +20,18 @@ const DocumentGridCardComponent = ({ document }: DocumentGridCardProps) => {
     contributorSummary,
     versionLabel,
     attachmentsLabel,
+    shareLabel,
+    handleShare,
   } = useDocumentCard(document);
   const { styles } = useDocumentGridCardTheme();
 
   return (
-    <View style={styles.container}>
+    <Pressable
+      style={styles.container}
+      onLongPress={handleShare}
+      accessibilityRole="button"
+      accessibilityLabel={shareLabel}
+    >
       <Text size="font-size-sm" weight="font-weight-semibold" numberOfLines={2}>
         {title}
       </Text>
@@ -46,7 +53,7 @@ const DocumentGridCardComponent = ({ document }: DocumentGridCardProps) => {
           labelColor="font-secondary"
         />
       </View>
-    </View>
+    </Pressable>
   );
 };
 

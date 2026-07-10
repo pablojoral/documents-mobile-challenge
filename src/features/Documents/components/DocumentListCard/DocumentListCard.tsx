@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Text } from 'components/Text/Text';
 import type { Document } from 'models/models';
@@ -22,11 +22,18 @@ const DocumentListCardComponent = ({ document }: DocumentListCardProps) => {
     contributorsTitle,
     attachmentsTitle,
     versionLabel,
+    shareLabel,
+    handleShare,
   } = useDocumentCard(document);
   const { styles } = useDocumentListCardTheme();
 
   return (
-    <View style={styles.container}>
+    <Pressable
+      style={styles.container}
+      onLongPress={handleShare}
+      accessibilityRole="button"
+      accessibilityLabel={shareLabel}
+    >
       <View style={styles.header}>
         <Text size="font-size-md" weight="font-weight-semibold" numberOfLines={1}>
           {title}
@@ -53,7 +60,7 @@ const DocumentListCardComponent = ({ document }: DocumentListCardProps) => {
           />
         ) : null}
       </View>
-    </View>
+    </Pressable>
   );
 };
 
