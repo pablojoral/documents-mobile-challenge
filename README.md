@@ -90,6 +90,9 @@ constrained by the challenge server's single unpaginated `GET /documents` endpoi
   `DocumentGridCard` are `React.memo`-wrapped and fed stable `renderItem` / `keyExtractor`
   (`useCallback` in `features/Documents/hooks/useDocumentsScreen.tsx`), so only changed rows
   re-render as the list scrolls or the sort changes.
+- **Shared card sub-components over duplicated styles.** `DocumentListCard` and `DocumentGridCard`
+  had duplicated meta-row and icon+label styles, extracted into `components/IconLabel` (generic) and
+  `features/Documents/components/DocumentMetaRow` / `DocumentCardFooterColumn` (Documents-specific).
 
 ## Notifications (WebSocket)
 

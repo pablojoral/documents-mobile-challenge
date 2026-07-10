@@ -12,22 +12,15 @@ export const useDocumentListCardTheme = () => {
       borderWidth: theme.borderWidth['border-width-hairline'],
       borderColor: theme.borderColor['border-secondary'],
       padding: theme.spacing['spacing-md'],
-      gap: theme.spacing['spacing-xs'],
-    },
-    metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
       gap: theme.spacing['spacing-sm'],
+    },
+    header: {
+      gap: theme.spacing['spacing-xs'],
     },
     footerRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: theme.spacing['spacing-sm'],
-    },
-    footerItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing['spacing-xxs'],
     },
   });
 

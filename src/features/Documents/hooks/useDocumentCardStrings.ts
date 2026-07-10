@@ -4,11 +4,11 @@
  */
 export const useDocumentCardStrings = () => {
   return {
-    contributors: (count: number) =>
-      `${count} ${count === 1 ? 'contributor' : 'contributors'}`,
     attachments: (count: number) =>
       `${count} ${count === 1 ? 'attachment' : 'attachments'}`,
     version: (version: string) => `v${version}`,
     andOthers: (count: number) => `+${count}`,
+    contributorsTitle: 'Contributors',
+    attachmentsTitle: 'Attachments',
   };
 };
