@@ -1,6 +1,9 @@
 jest.mock('services/api/services/DocumentsService', () => ({
   documentsService: { createDocument: jest.fn() },
 }));
+jest.mock('utils/generateRandomUser', () => ({
+  generateRandomUser: () => ({ ID: 'local-user', Name: 'You' }),
+}));
 
 import { act, waitFor } from '@testing-library/react-native';
 

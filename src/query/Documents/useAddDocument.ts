@@ -4,6 +4,7 @@ import { qk } from 'query/keys';
 import type { User } from 'models/models';
 import type { PickedFile } from 'components/DocumentInput/useDocumentInput';
 import { documentsService } from 'services/api/services/DocumentsService';
+import { generateRandomUser } from 'utils/generateRandomUser';
 
 export interface AddDocumentInput {
   name: string;
@@ -11,7 +12,7 @@ export interface AddDocumentInput {
   files: PickedFile[];
 }
 
-const CURRENT_USER: User = { ID: 'local-user', Name: 'You' };
+const CURRENT_USER: User = generateRandomUser();
 
 /**
  * Creates a document via `POST /documents`, then invalidates every cached
