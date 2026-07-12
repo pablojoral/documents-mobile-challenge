@@ -145,6 +145,16 @@ Real-time new-document notifications are consumed through `src/services/ws/`:
   selector, tells the user unseen notifications are waiting whenever any remain unread; tapping it
   calls `FlatList.scrollToOffset({ offset: 0, animated: true })` via a ref owned by
   `useNotificationsModal`, jumping straight to the newest notifications.
+- **Decision — `-fakeNotifications` flag on the Go server, defaulting to `false`.**
+  `server/server.go`'s `/notifications` endpoint originally only emitted synthetic,
+  fully random `gofakeit` data on a timer, disconnected from real activity. It now
+  defaults to broadcasting a real notification exactly when a document is created via
+  `POST /documents` — built from that document's `ID`/`Title` and its first
+  contributor as `UserID`/`UserName` (falling back to `"unknown"` if the document has
+  no contributors) — through a small per-client channel + writer-goroutine registry,
+  since `gorilla/websocket` doesn't allow concurrent writes on one connection. Passing
+  `-fakeNotifications=true` restores the original random-timer behavior, kept around
+  for exercising the notifications UI without having to create real documents.
 
 ## Create document
 

@@ -17,13 +17,21 @@ import (
 )
 
 var (
-	addr     = flag.String("addr", "0.0.0.0:8080", "http service address")
-	upgrader = websocket.Upgrader{
+	addr              = flag.String("addr", "0.0.0.0:8080", "http service address")
+	fakeNotifications = flag.Bool("fakeNotifications", true, "emit fake random notifications instead of real document-creation events")
+	upgrader          = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 	documents   []document
 	documentsMu sync.RWMutex
+
+	notifyClients   = make(map[*notifyClient]struct{})
+	notifyClientsMu sync.Mutex
 )
+
+type notifyClient struct {
+	send chan *message
+}
 
 type message struct {
 	Timestamp     time.Time
@@ -75,6 +83,14 @@ func notifications(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
+	if *fakeNotifications {
+		notificationsFake(c)
+		return
+	}
+	notificationsReal(c)
+}
+
+func notificationsFake(c *websocket.Conn) {
 	for {
 		msg := &message{
 			Timestamp:     time.Now(),
@@ -84,13 +100,67 @@ func notifications(w http.ResponseWriter, r *http.Request) {
 			DocumentTitle: gofakeit.BeerName(),
 		}
 
-		err = c.WriteJSON(msg)
-		if err != nil {
+		if err := c.WriteJSON(msg); err != nil {
 			log.Println("write:", err)
 			break
 		}
 
 		time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+	}
+}
+
+func notificationsReal(c *websocket.Conn) {
+	client := &notifyClient{send: make(chan *message, 8)}
+	registerClient(client)
+	defer unregisterClient(client)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			if _, _, err := c.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case msg, ok := <-client.send:
+			if !ok {
+				return
+			}
+			if err := c.WriteJSON(msg); err != nil {
+				log.Println("write:", err)
+				return
+			}
+		case <-done:
+			return
+		}
+	}
+}
+
+func registerClient(c *notifyClient) {
+	notifyClientsMu.Lock()
+	notifyClients[c] = struct{}{}
+	notifyClientsMu.Unlock()
+}
+
+func unregisterClient(c *notifyClient) {
+	notifyClientsMu.Lock()
+	delete(notifyClients, c)
+	notifyClientsMu.Unlock()
+	close(c.send)
+}
+
+func broadcastNotification(msg *message) {
+	notifyClientsMu.Lock()
+	defer notifyClientsMu.Unlock()
+	for c := range notifyClients {
+		select {
+		case c.send <- msg:
+		default: // slow/stuck client — drop rather than block the broadcaster
+		}
 	}
 }
 
@@ -236,8 +306,28 @@ func createDocument(w http.ResponseWriter, r *http.Request) {
 	documents = append(documents, doc)
 	documentsMu.Unlock()
 
+	if !*fakeNotifications {
+		broadcastNotification(newDocumentMessage(doc))
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(doc)
+}
+
+func newDocumentMessage(doc document) *message {
+	userID, userName := "", "unknown"
+	if len(doc.Contributors) > 0 {
+		userID = doc.Contributors[0].ID
+		userName = doc.Contributors[0].Name
+	}
+
+	return &message{
+		Timestamp:     time.Now(),
+		UserID:        userID,
+		UserName:      userName,
+		DocumentID:    doc.ID,
+		DocumentTitle: doc.Title,
+	}
 }
 
 func addHeaders(w http.ResponseWriter) {
