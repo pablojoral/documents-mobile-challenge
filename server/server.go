@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/brianvoe/gofakeit/v5"
@@ -20,7 +21,8 @@ var (
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
-	documents []document
+	documents   []document
+	documentsMu sync.RWMutex
 )
 
 type message struct {
@@ -52,6 +54,13 @@ type documentsPage struct {
 	Limit   int
 	Total   int
 	HasMore bool
+}
+
+type createDocumentRequest struct {
+	Title        string
+	Version      string
+	Attachments  []string
+	Contributors []user
 }
 
 func notifications(w http.ResponseWriter, r *http.Request) {
@@ -146,6 +155,17 @@ func api(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	switch r.Method {
+	case http.MethodGet:
+		listDocuments(w, r)
+	case http.MethodPost:
+		createDocument(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func listDocuments(w http.ResponseWriter, r *http.Request) {
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
 		page = 1
@@ -159,7 +179,9 @@ func api(w http.ResponseWriter, r *http.Request) {
 		limit = 100
 	}
 
+	documentsMu.RLock()
 	sorted := sortDocuments(documents, r.URL.Query().Get("sort"))
+	documentsMu.RUnlock()
 
 	start := (page - 1) * limit
 	if start > len(sorted) {
@@ -185,6 +207,37 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(w)
 	enc.Encode(resp)
+}
+
+func createDocument(w http.ResponseWriter, r *http.Request) {
+	var req createDocumentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Title) == "" {
+		http.Error(w, "title is required", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now()
+	doc := document{
+		ID:           gofakeit.UUID(),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		Title:        req.Title,
+		Attachments:  req.Attachments,
+		Contributors: req.Contributors,
+		Version:      req.Version,
+	}
+
+	documentsMu.Lock()
+	documents = append(documents, doc)
+	documentsMu.Unlock()
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(doc)
 }
 
 func addHeaders(w http.ResponseWriter) {
