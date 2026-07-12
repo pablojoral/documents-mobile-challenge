@@ -3,9 +3,7 @@
 A React Native app that lists the most recent documents, notifies the user in real time when
 another user creates a document, and lets the user create a new document.
 
-> This repository is built incrementally — commit early, commit often. At this stage it contains
-> the project setup and this document describing the intended approach. Sections below marked
-> _(planned)_ describe where the code is heading, not what is already implemented.
+> This repository is built incrementally — commit early, commit often.
 
 ## Features
 
@@ -14,13 +12,14 @@ another user creates a document, and lets the user create a new document.
 - Show a **real-time notification** when a new document is created by another user (via WebSocket).
 - **Create** a new document.
 
-**Optional (planned, in priority order)**
-- Pull to refresh on the list / grid.
-- Relative dates (e.g. "1 day ago").
-- Native **share** button.
-- Local notifications and basic offline support.
+**Optional (in priority order)**
+- Pull to refresh on the list / grid. — done
+- Relative dates (e.g. "1 day ago"). — done
+- Native **share** button. — done
+- Basic offline support. — done, see [Offline support](#offline-support) below.
+- Local notifications — not implemented.
 
-## Reasoning & approach _(planned)_
+## Reasoning & approach
 
 The goal is a structure that keeps features isolated and lets requirements change without ripple
 effects. Guiding decisions:
@@ -79,11 +78,13 @@ shaped it:
   not a stable set to page through. It now seeds 100 documents once at startup and accepts
   `page`/`limit`/`sort` params, returning `{ Data, Page, Limit, Total, HasMore }`.
 - **`useInfiniteQuery`, not `useQuery`,** to match: `query/Documents/useDocuments.ts` pages through
-  the results, and `useDocumentsScreen` calls `fetchNextPage` on `onEndReached`.
+  the results, and `useDocumentsScreen` calls `fetchNextPage` on `onEndReached` (skipped while
+  offline — see [Offline support](#offline-support)).
 - **Server-side sorting, not client-side.** The removed `sortDocuments.ts` transform is now the
   server's `sort` param — a paginated client only holds the pages it's scrolled through, so it can't
-  sort the full set itself. Changing sort swaps the query key (`qk.documents.list(sort)`) and
-  refetches from page 1.
+  sort the full set itself. Changing sort swaps the query key (`qk.documents.list(sort)`); TanStack
+  Query serves any pages already cached for that sort instantly and refetches in the background if
+  stale, rather than the screen forcing a drop-and-refetch itself.
 - **No serialization / DTO-mapping layer.** The types in `models/models.ts` mirror the server JSON
   verbatim (PascalCase `ID` / `CreatedAt`, RFC3339 date strings) and services return `res.data`
   as-is. A normalize/transform layer isn't worth the indirection at this project's size —
@@ -202,6 +203,24 @@ Long-pressing a `DocumentListCard` or `DocumentGridCard` opens the OS-native sha
   and the `shareLabel` (used as the `accessibilityLabel`) are added there rather than duplicated per
   card, consistent with how the rest of the card's derived fields are centralized.
 
+## Offline support
+
+The documents feed stays usable offline: the last fetch is readable, pagination/refresh don't fire
+doomed requests, and a failed background refetch never blanks out data still on screen.
+
+- **`onlineManager` wired to NetInfo** (`query/onlineManager.ts`) — RN has no `window`/`navigator`
+  events for TanStack Query's default online detection, so without this every offline query would
+  just run straight into a network error instead of pausing.
+- **Query cache persisted to MMKV** via `PersistQueryClientProvider` (`query/provider.tsx`,
+  `query/persister.ts`), with documents queries pinned out of GC (`gcTime: Infinity` in `client.ts`)
+  so an inactive sort variant can't be silently evicted from the persisted cache.
+- **`useIsOnline`** (`hooks/useIsOnline.ts`, checks NetInfo's `isConnected` **and**
+  `isInternetReachable`) gates pagination/pull-to-refresh, disables `SortSelector` and
+  `AddDocumentButton`, and shows an `OfflineTag` pill below the controls row.
+- **`useDocumentsScreen` falls back to cached data instead of the error screen** on a failed
+  background refetch, and sort switching no longer force-drops its cache — both just let TanStack
+  Query's normal cache-then-refetch-if-stale behavior handle freshness.
+
 ## Tech choices
 
 The bias is to write the code myself; libraries are added only where they remove meaningful,
@@ -221,6 +240,9 @@ undifferentiated work. Each is justified here as it is introduced.
 | `@hookform/resolvers` | Adapter that feeds a `zod` schema into `react-hook-form`'s `resolver` option, so validation logic lives in one schema instead of being duplicated between the two libraries. | Writing a custom RHF resolver by hand — reinvents what this package already does. |
 | `react-native-svg` | Rendering primitive backing the app's themed `Icon` component (`src/components/Icon`) — a handful of hand-authored Feather-style icons (list, grid, bell, chevron, check, close, plus) driven by the existing `theme.iconSize` / `theme.fontColor` tokens. Has first-class Fabric/New Architecture support. | An icon-font package (e.g. `@react-native-vector-icons/*`) — bundles an entire font family for the ~7 glyphs actually used, and community icon-font packages have historically lagged on New Architecture support. |
 | `react-native-haptic-feedback` | Fires a Taptic Engine / vibration-motor tick on card long-press — no such primitive exists in RN core or `Pressable`. Actively maintained with New Architecture support. | RN core `Vibration.vibrate()` — no native dep, but reads as a buzz on iOS rather than a tap. `expo-haptics` — Expo-only, unusable in this bare-RN app. |
+| `@react-native-community/netinfo` | Drives both the TanStack Query `onlineManager` and the `useIsOnline` UI hook — RN has no `navigator`/`window` connectivity events for the library's default detection to use. | Polling a health-check endpoint — extra network traffic and slower to detect a drop than a native connectivity listener. |
+| `react-native-mmkv` (+ `react-native-nitro-modules` peer) | Synchronous, fast key/value storage backing the persisted query cache (`query/persister.ts`), adapted to the `AsyncStorage`-shaped interface `@tanstack/query-async-storage-persister` expects. Built on Nitro Modules with first-class New Architecture support. | `@react-native-async-storage/async-storage` — the more common pairing with TanStack's persister, but async and measurably slower than MMKV for this app's read/write pattern. |
+| `@tanstack/query-async-storage-persister` + `@tanstack/react-query-persist-client` | Persist the query cache to storage and restore it on cold start (`PersistQueryClientProvider`), so the documents feed is readable offline. | Hand-rolled persistence (subscribe to the query cache, serialize on change, rehydrate on boot) — reinvents what these packages already do, including dehydration filtering and cache-busting. |
 
 ## Getting started
 
@@ -281,16 +303,18 @@ yarn test        # or: yarn jest
 [React Native Testing Library](https://callstack.github.io/react-native-testing-library/) (RNTL,
 v13) for anything that renders. Config lives in `jest.config.js` + `jest.setup.ts`.
 
-**In place today.** The harness, documents-feed, WebSocket-client, notifications-store, and
-create-document suites are implemented — 40 test files run green across every layer below. Shared
-helpers live in
+**In place today.** The harness, documents-feed, WebSocket-client, notifications-store,
+create-document, and offline-support suites are implemented — 46 test files run green across every
+layer below. Shared helpers live in
 `src/test/`: `makeDocument` / `makeUser` / `makeNotification` fixtures (`fixtures.ts`),
 `renderWithQuery` / `renderHookWithQuery`
 (`renderWithQuery.tsx`), which wrap the unit in a fresh `QueryClient` (with `retry: false`) so
 query-backed code settles deterministically, and `MockWebSocket` / `installMockWebSocket`
 (`mockWebSocket.ts`), a controllable stand-in for the global `WebSocket`. `jest.setup.ts` globally
-mocks `react-native-safe-area-context` with zeroed insets so components render without a native
-provider.
+mocks `react-native-safe-area-context` with zeroed insets, `@react-native-community/netinfo` with
+its own shipped mock (defaults to connected), and `react-native-mmkv` (no TurboModule/Nitro binary
+under Jest) — so components render without a native provider and offline-dependent code has a sane
+default to override per test.
 
 **Principles** (see [`.claude/rules/testing.md`](.claude/rules/testing.md)):
 - **Co-located** — `*.test.ts(x)` sits next to the unit it covers; only shared harness code
@@ -318,6 +342,9 @@ provider.
 - **State** — `useNotificationsStore` (add/dedup/read/clear/selector) and
   `useNotificationsSocketSync` (connects the socket and forwards messages into the store, stops on
   unmount) against a mock WebSocket.
+- **Offline** — `useIsOnline` and `setupOnlineManager` against a mocked NetInfo, `queryPersister`
+  against an in-memory MMKV stand-in, and `useDocumentsScreen`'s offline-gating and
+  `showError`/`showList` derivation with `useIsOnline` mocked directly.
 
 Coverage targets logic-heavy modules (utils, hooks, services) toward full line/branch coverage;
 thin presentational wrappers get a render smoke test.

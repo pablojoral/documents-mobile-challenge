@@ -1,8 +1,9 @@
 import { StyleSheet } from 'react-native';
+import { useMemo } from 'react';
 
 import { useTheme } from 'theme/hooks/useTheme';
 
-export const useSortSelectorTheme = () => {
+export const useSortSelectorTheme = (disabled: boolean) => {
   const theme = useTheme();
 
   const styles = StyleSheet.create({
@@ -46,5 +47,10 @@ export const useSortSelectorTheme = () => {
     },
   });
 
-  return { styles, theme };
+  const triggerStyle = useMemo(
+    () => [styles.trigger, { opacity: disabled ? 0.5 : 1 }],
+    [styles.trigger, disabled],
+  );
+
+  return { styles, triggerStyle, theme };
 };

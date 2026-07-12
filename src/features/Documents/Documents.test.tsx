@@ -1,4 +1,5 @@
 jest.mock('query/Documents/useDocuments');
+jest.mock('hooks/useIsOnline');
 jest.mock('features/CreateDocument/components/AddDocumentButton/AddDocumentButton', () => ({
   AddDocumentButton: jest.fn(() => null),
 }));
@@ -8,12 +9,14 @@ import { ActivityIndicator } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
 
 import { useDocuments } from 'query/Documents/useDocuments';
+import { useIsOnline } from 'hooks/useIsOnline';
 import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
 import { makeDocument, makeDocumentsPage } from 'test/fixtures';
 import { renderWithQuery } from 'test/renderWithQuery';
 import { Documents } from './Documents';
 
 const mockUseDocuments = useDocuments as jest.Mock;
+const mockUseIsOnline = useIsOnline as jest.Mock;
 const refetch = jest.fn();
 const fetchNextPage = jest.fn();
 
@@ -38,6 +41,7 @@ describe('Documents screen', () => {
   beforeEach(() => {
     refetch.mockReset();
     fetchNextPage.mockReset();
+    mockUseIsOnline.mockReturnValue(true);
   });
 
   it('shows a spinner while loading', () => {
@@ -67,6 +71,16 @@ describe('Documents screen', () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps showing the list instead of the error state when a failed refetch still has cached documents', () => {
+    setQuery({
+      isError: true,
+      data: withPages(makeDocument({ Title: 'Alpha' })),
+    });
+    const { getByText, queryByText } = renderWithQuery(<Documents />);
+    expect(getByText('Alpha')).toBeTruthy();
+    expect(queryByText('Something went wrong')).toBeNull();
+  });
+
   it('updates the sort trigger when a new sort is chosen', () => {
     setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
     const { getByText, getAllByText } = renderWithQuery(<Documents />);
@@ -89,6 +103,34 @@ describe('Documents screen', () => {
     setQuery({ data: withPages() });
     renderWithQuery(<Documents />);
     expect(jest.mocked(AddDocumentButton)).toHaveBeenCalled();
+  });
+
+  it('does not show the offline tag while online', () => {
+    setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
+    const { queryByText } = renderWithQuery(<Documents />);
+    expect(queryByText('Offline')).toBeNull();
+    expect(jest.mocked(AddDocumentButton)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ disabled: false }),
+      undefined,
+    );
+  });
+
+  it('shows the offline tag and disables sort/add-document controls while offline', () => {
+    mockUseIsOnline.mockReturnValue(false);
+    setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
+    const { getByText, queryByText, getAllByText } = renderWithQuery(
+      <Documents />,
+    );
+
+    expect(getByText('Offline')).toBeTruthy();
+
+    fireEvent.press(getAllByText('Newest first')[0]); // sort trigger, disabled
+    expect(queryByText('Oldest first')).toBeNull(); // sheet never opens
+
+    expect(jest.mocked(AddDocumentButton)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ disabled: true }),
+      undefined,
+    );
   });
 
   it('resets the sort to created-desc when the add-document button reports a successful add', () => {

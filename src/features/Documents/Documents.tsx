@@ -12,6 +12,7 @@ import { SortSelector } from './components/SortSelector/SortSelector';
 import { DocumentsEmptyState } from './components/DocumentsEmptyState/DocumentsEmptyState';
 import { DocumentsError } from './components/DocumentsError/DocumentsError';
 import { DocumentsListFooter } from './components/DocumentsListFooter/DocumentsListFooter';
+import { OfflineTag } from './components/OfflineTag/OfflineTag';
 import { NotificationsButton } from 'features/Notifications/components/NotificationsButton/NotificationsButton';
 import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
 
@@ -20,7 +21,9 @@ export const Documents = () => {
   const {
     documents,
     isLoading,
-    isError,
+    showError,
+    showList,
+    isOffline,
     isRefreshing,
     isFetchingNextPage,
     viewMode,
@@ -49,8 +52,9 @@ export const Documents = () => {
         </View>
         <View style={styles.controlsRow}>
           <ViewModeToggle value={viewMode} onChange={setViewMode} />
-          <SortSelector value={sort} onChange={setSort} />
+          <SortSelector value={sort} onChange={setSort} disabled={isOffline} />
         </View>
+        {isOffline && <OfflineTag />}
       </View>
 
       {isLoading && (
@@ -59,9 +63,9 @@ export const Documents = () => {
         </View>
       )}
 
-      {!isLoading && isError && <DocumentsError onRetry={handleRetry} />}
+      {showError && <DocumentsError onRetry={handleRetry} />}
 
-      {!isLoading && !isError && (
+      {showList && (
         <FlatList
           key={viewMode}
           data={documents}
@@ -86,7 +90,10 @@ export const Documents = () => {
         />
       )}
 
-      <AddDocumentButton onDocumentAdded={handleDocumentAdded} />
+      <AddDocumentButton
+        onDocumentAdded={handleDocumentAdded}
+        disabled={isOffline}
+      />
     </View>
   );
 };

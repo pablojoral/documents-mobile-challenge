@@ -1,7 +1,11 @@
 import React from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
 import { queryClient } from './client';
+import { queryPersister } from './persister';
+import { setupOnlineManager } from './onlineManager';
+
+setupOnlineManager();
 
 interface QueryProviderProps {
   children: React.ReactNode;
@@ -9,10 +13,17 @@ interface QueryProviderProps {
 
 /**
  * Wraps the app in the shared QueryClient. Mount once, near the root, inside
- * any providers it depends on (e.g. SafeAreaProvider).
+ * any providers it depends on (e.g. SafeAreaProvider). The client is
+ * persisted to MMKV (`persister.ts`) so the last successful documents feed
+ * is still readable offline, and online detection is wired to NetInfo
+ * (`onlineManager.ts`) so queries pause instead of erroring while offline.
  */
 export const QueryProvider = ({ children }: QueryProviderProps) => {
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: queryPersister }}>
+      {children}
+    </PersistQueryClientProvider>
   );
 };

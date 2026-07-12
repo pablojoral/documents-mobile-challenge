@@ -1,8 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { useDocuments } from 'query/Documents/useDocuments';
-import { qk } from 'query/keys';
+import { useIsOnline } from 'hooks/useIsOnline';
 import type { Document } from 'models/models';
 
 import type { DocumentSort, DocumentViewMode } from '../types';
@@ -13,12 +12,13 @@ import { DocumentGridCard } from '../components/DocumentGridCard/DocumentGridCar
  * All logic for the Documents screen: the paginated documents query, view-mode
  * and sort state, derived item list, and the stable `renderItem`/`keyExtractor`/
  * `handleEndReached` the FlatList consumes. Sorting and pagination are both
- * server-side — changing `sort` swaps the query key and refetches from page 1.
+ * server-side — changing `sort` swaps the query key, which serves cached
+ * pages instantly if present and refetches in the background if stale.
  */
 export const useDocumentsScreen = () => {
-  const queryClient = useQueryClient();
+  const isOnline = useIsOnline();
   const [viewMode, setViewMode] = useState<DocumentViewMode>('list');
-  const [sort, setSortState] = useState<DocumentSort>('created-desc');
+  const [sort, setSort] = useState<DocumentSort>('created-desc');
 
   const {
     data,
@@ -36,33 +36,29 @@ export const useDocumentsScreen = () => {
     [data],
   );
 
+  // A failed background refetch (a stale query, pull-to-refresh, or going
+  // offline) still leaves earlier cached pages in `data` — only fall back to
+  // the full error screen when there's nothing cached left to show instead.
+  const showError = !isLoading && isError && documents.length === 0;
+  const showList = !isLoading && !showError;
+
   const numColumns = viewMode === 'grid' ? 2 : 1;
 
   const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    if (isOnline) {
+      refetch();
+    }
+  }, [isOnline, refetch]);
 
   const handleEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
+    if (hasNextPage && !isFetchingNextPage && isOnline) {
       fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  // A sort can still have several pages cached from an earlier scroll (or,
-  // once a document is added, ones whose offsets have shifted); dropping the
-  // cached query instead of just switching the key guarantees the list
-  // restarts at page 1 with fresh data every time the sort changes.
-  const setSort = useCallback(
-    (next: DocumentSort) => {
-      queryClient.removeQueries({ queryKey: qk.documents.list(next) });
-      setSortState(next);
-    },
-    [queryClient],
-  );
+  }, [hasNextPage, isFetchingNextPage, isOnline, fetchNextPage]);
 
   const handleDocumentAdded = useCallback(() => {
     setSort('created-desc');
-  }, [setSort]);
+  }, []);
 
   const keyExtractor = useCallback((document: Document) => document.ID, []);
 
@@ -79,7 +75,9 @@ export const useDocumentsScreen = () => {
   return {
     documents,
     isLoading,
-    isError,
+    showError,
+    showList,
+    isOffline: !isOnline,
     isRefreshing: isRefetching,
     isFetchingNextPage,
     viewMode,

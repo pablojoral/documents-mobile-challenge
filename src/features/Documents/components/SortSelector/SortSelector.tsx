@@ -11,20 +11,27 @@ import { useSortSelectorTheme } from './theme/useSortSelectorTheme';
 interface SortSelectorProps {
   value: DocumentSort;
   onChange: (sort: DocumentSort) => void;
+  disabled?: boolean;
 }
 
 /** A "Sort by" trigger that opens a bottom-sheet modal of sort options. */
-export const SortSelector = ({ value, onChange }: SortSelectorProps) => {
+export const SortSelector = ({
+  value,
+  onChange,
+  disabled = false,
+}: SortSelectorProps) => {
   const { isOpen, options, currentLabel, title, open, close, handleSelect } =
     useSortSelector(value, onChange);
-  const { styles } = useSortSelectorTheme();
+  const { styles, triggerStyle } = useSortSelectorTheme(disabled);
 
   return (
     <>
       <TouchableOpacity
-        style={styles.trigger}
+        style={triggerStyle}
         onPress={open}
-        accessibilityRole="button">
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}>
         <Text size="font-size-sm" weight="font-weight-medium">
           {currentLabel}
         </Text>

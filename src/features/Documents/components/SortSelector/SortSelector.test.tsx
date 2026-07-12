@@ -36,4 +36,25 @@ describe('SortSelector', () => {
     // The trigger's chevron plus the active option's check icon.
     expect(UNSAFE_getAllByType(Svg)).toHaveLength(2);
   });
+
+  it('does not open the sheet when disabled', () => {
+    const onChange = jest.fn();
+    const { getAllByText, queryByText } = render(
+      <SortSelector value="created-desc" onChange={onChange} disabled />,
+    );
+
+    fireEvent.press(getAllByText('Newest first')[0]);
+
+    expect(queryByText('Oldest first')).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('marks the trigger as disabled for accessibility', () => {
+    const { getByRole } = render(
+      <SortSelector value="created-desc" onChange={jest.fn()} disabled />,
+    );
+    expect(getByRole('button').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+  });
 });

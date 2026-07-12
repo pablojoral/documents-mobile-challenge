@@ -1544,6 +1544,11 @@
     prompts "^2.4.2"
     semver "^7.5.2"
 
+"@react-native-community/netinfo@^12.0.1":
+  version "12.0.1"
+  resolved "https://registry.yarnpkg.com/@react-native-community/netinfo/-/netinfo-12.0.1.tgz#fec75f4093c27778479d8927b4f51f133b8a13a4"
+  integrity sha512-P/3caXIvfYSJG8AWJVefukg+ZGRPs+M4Lp3pNJtgcTYoJxCjWrKQGNnCkj/Cz//zWa/avGed0i/wzm0T8vV2IQ==
+
 "@react-native-documents/picker@^12.0.1":
   version "12.0.1"
   resolved "https://registry.yarnpkg.com/@react-native-documents/picker/-/picker-12.0.1.tgz#ea59796175308be9818dd9e8f14a41145c35042b"
@@ -1787,10 +1792,32 @@
   resolved "https://registry.yarnpkg.com/@standard-schema/utils/-/utils-0.3.0.tgz#3d5e608f16c2390c10528e98e59aef6bf73cae7b"
   integrity sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==
 
+"@tanstack/query-async-storage-persister@^5.101.2":
+  version "5.101.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-async-storage-persister/-/query-async-storage-persister-5.101.2.tgz#c0b474e7d0f62312e89956e9597dfc91f756ac29"
+  integrity sha512-jf7zvVKZ5q2j/xuhbTIBUpw5xt6cw/ioOFQquxK7fRY0AmMQP8A0JVMOgYoeQLA4PKdeT7RxsuLAF0Lft9oJ8Q==
+  dependencies:
+    "@tanstack/query-core" "5.101.2"
+    "@tanstack/query-persist-client-core" "5.101.2"
+
 "@tanstack/query-core@5.101.2":
   version "5.101.2"
   resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.101.2.tgz#c901fb76b68169ff5e1e44017404e7e2e90ce1af"
   integrity sha512-hH5MLoJhF7KaIGd7q3xTXGXvslI+GYlM1Z/35aSHHWaCJWB7XvTSHYuV3eM7tw+aE0mT/xMro4M4Q9rCGHT0lw==
+
+"@tanstack/query-persist-client-core@5.101.2":
+  version "5.101.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-persist-client-core/-/query-persist-client-core-5.101.2.tgz#3bcd02c1ee2090158b4b67c5e4e51cbaa694dc71"
+  integrity sha512-rgMsbvBVpSPDUsprC9FYxojdG0Q1LH6yq1i3DXz2aps4VEqv2l4Msj3YDqIifU3xkl/DrYe9YWntZAJLrM6xTg==
+  dependencies:
+    "@tanstack/query-core" "5.101.2"
+
+"@tanstack/react-query-persist-client@^5.101.2":
+  version "5.101.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query-persist-client/-/react-query-persist-client-5.101.2.tgz#673554fe900861b3075f074965d0f63f3f213be9"
+  integrity sha512-19UpaRtf0lvB2QAJ2MoixxtGf3osMOd508g99EsttUj4+3eLs+ulnNgYjB7AkQMHrRlcbVXqpVNqWkB4a7g8Zw==
+  dependencies:
+    "@tanstack/query-persist-client-core" "5.101.2"
 
 "@tanstack/react-query@^5.101.2":
   version "5.101.2"
@@ -5747,6 +5774,16 @@ react-native-haptic-feedback@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/react-native-haptic-feedback/-/react-native-haptic-feedback-3.0.0.tgz#a1e144c491885e65917cafb0c17d4ad2891ecc7e"
   integrity sha512-yxBQFHhXU8S0xupGtzDRToGw5yMWezUdLzxtlx2Oi9YpjPwprWZWCw8foPt0S2t84B0ZikzZYyOHiMSXIelUxg==
+
+react-native-mmkv@^4.3.2:
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-4.3.2.tgz#522978d2330932c538cce36093040826870ccb49"
+  integrity sha512-49OAyfkg0/TMWiWELZN6VuVQPZPhizwL4DTmp8b7B1md3dB/s3LH3mGfC3T+lp9W0y/rqxZMEnotLFTIbOAenQ==
+
+react-native-nitro-modules@^0.36.1:
+  version "0.36.1"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.36.1.tgz#f697d96f772ce17930f15b81ad4b1e42550569ef"
+  integrity sha512-kBv/VvKqAmkXAvP1DxJMC9b/fRhh7JdSO4EUnPP46hJjrIFeFR8AwKm8mYaKZEuF014M/TVdv2vomVUW0umsQQ==
 
 react-native-safe-area-context@^5.5.2:
   version "5.8.0"

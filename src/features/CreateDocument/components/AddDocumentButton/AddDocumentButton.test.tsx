@@ -56,6 +56,17 @@ describe('AddDocumentButton', () => {
     );
   });
 
+  it('disables the trigger button when disabled', () => {
+    const { getByText } = render(
+      <AddDocumentButton onDocumentAdded={onDocumentAdded} disabled />,
+    );
+    fireEvent.press(getByText('Add document'));
+    expect(CreateDocumentModal).toHaveBeenLastCalledWith(
+      expect.objectContaining({ visible: false }),
+      undefined,
+    );
+  });
+
   it('forwards onDocumentAdded as the modal onSuccess', () => {
     const { getByText } = render(<AddDocumentButton onDocumentAdded={onDocumentAdded} />);
     fireEvent.press(getByText('Add document'));

@@ -1,9 +1,10 @@
 jest.mock('query/Documents/useDocuments');
+jest.mock('hooks/useIsOnline');
 
 import { act } from '@testing-library/react-native';
 
 import { useDocuments } from 'query/Documents/useDocuments';
-import { qk } from 'query/keys';
+import { useIsOnline } from 'hooks/useIsOnline';
 import { makeDocument, makeDocumentsPage } from 'test/fixtures';
 import { renderHookWithQuery } from 'test/renderWithQuery';
 import { DocumentListCard } from '../components/DocumentListCard/DocumentListCard';
@@ -11,6 +12,7 @@ import { DocumentGridCard } from '../components/DocumentGridCard/DocumentGridCar
 import { useDocumentsScreen } from './useDocumentsScreen';
 
 const mockUseDocuments = useDocuments as jest.Mock;
+const mockUseIsOnline = useIsOnline as jest.Mock;
 const refetch = jest.fn();
 const fetchNextPage = jest.fn();
 
@@ -34,6 +36,7 @@ describe('useDocumentsScreen', () => {
   beforeEach(() => {
     refetch.mockReset();
     fetchNextPage.mockReset();
+    mockUseIsOnline.mockReturnValue(true);
     setQuery({
       data: { pages: [makeDocumentsPage({ Data: [newer, older] })] },
     });
@@ -47,24 +50,13 @@ describe('useDocumentsScreen', () => {
     ]);
   });
 
-  it('passes the current sort to useDocuments and re-queries from page 1 when it changes', () => {
+  it('passes the current sort to useDocuments when it changes', () => {
     const { result } = renderHookWithQuery(() => useDocumentsScreen());
     expect(mockUseDocuments).toHaveBeenCalledWith('created-desc');
 
     act(() => result.current.setSort('created-asc'));
 
     expect(mockUseDocuments).toHaveBeenLastCalledWith('created-asc');
-  });
-
-  it('drops any cached pages for a sort when switching to it', () => {
-    const { result, client } = renderHookWithQuery(() => useDocumentsScreen());
-    const removeQueries = jest.spyOn(client, 'removeQueries');
-
-    act(() => result.current.setSort('title-asc'));
-
-    expect(removeQueries).toHaveBeenCalledWith({
-      queryKey: qk.documents.list('title-asc'),
-    });
   });
 
   it('derives numColumns and renderItem variant from the view mode', () => {
@@ -92,6 +84,13 @@ describe('useDocumentsScreen', () => {
     const { result } = renderHookWithQuery(() => useDocumentsScreen());
     act(() => result.current.handleRefresh());
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refetch on refresh while offline', () => {
+    mockUseIsOnline.mockReturnValue(false);
+    const { result } = renderHookWithQuery(() => useDocumentsScreen());
+    act(() => result.current.handleRefresh());
+    expect(refetch).not.toHaveBeenCalled();
   });
 
   it('fetches the next page on end reached when more pages exist', () => {
@@ -131,6 +130,19 @@ describe('useDocumentsScreen', () => {
     expect(fetchNextPage).not.toHaveBeenCalled();
   });
 
+  it('does not fetch the next page while offline, even if more pages exist', () => {
+    mockUseIsOnline.mockReturnValue(false);
+    setQuery({
+      data: { pages: [makeDocumentsPage({ Data: [newer, older] })] },
+      hasNextPage: true,
+    });
+    const { result } = renderHookWithQuery(() => useDocumentsScreen());
+
+    act(() => result.current.handleEndReached());
+
+    expect(fetchNextPage).not.toHaveBeenCalled();
+  });
+
   it('resets the sort to created-desc when a document is added', () => {
     const { result } = renderHookWithQuery(() => useDocumentsScreen());
     act(() => result.current.setSort('title-asc'));
@@ -139,5 +151,50 @@ describe('useDocumentsScreen', () => {
     act(() => result.current.handleDocumentAdded());
 
     expect(mockUseDocuments).toHaveBeenLastCalledWith('created-desc');
+  });
+
+  describe('isOffline', () => {
+    it('is false while online', () => {
+      const { result } = renderHookWithQuery(() => useDocumentsScreen());
+      expect(result.current.isOffline).toBe(false);
+    });
+
+    it('is true while offline', () => {
+      mockUseIsOnline.mockReturnValue(false);
+      const { result } = renderHookWithQuery(() => useDocumentsScreen());
+      expect(result.current.isOffline).toBe(true);
+    });
+  });
+
+  describe('showError / showList', () => {
+    it('shows the list while loading is false and the query succeeded', () => {
+      const { result } = renderHookWithQuery(() => useDocumentsScreen());
+      expect(result.current.showError).toBe(false);
+      expect(result.current.showList).toBe(true);
+    });
+
+    it('shows the error screen when the query fails with no cached data', () => {
+      setQuery({ data: undefined, isError: true });
+      const { result } = renderHookWithQuery(() => useDocumentsScreen());
+      expect(result.current.showError).toBe(true);
+      expect(result.current.showList).toBe(false);
+    });
+
+    it('keeps showing the list when the query fails but cached data exists', () => {
+      setQuery({
+        data: { pages: [makeDocumentsPage({ Data: [newer, older] })] },
+        isError: true,
+      });
+      const { result } = renderHookWithQuery(() => useDocumentsScreen());
+      expect(result.current.showError).toBe(false);
+      expect(result.current.showList).toBe(true);
+    });
+
+    it('shows neither while loading', () => {
+      setQuery({ data: undefined, isLoading: true });
+      const { result } = renderHookWithQuery(() => useDocumentsScreen());
+      expect(result.current.showError).toBe(false);
+      expect(result.current.showList).toBe(false);
+    });
   });
 });

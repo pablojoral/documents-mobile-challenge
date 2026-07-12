@@ -10,10 +10,14 @@ import { useAddDocumentButtonTheme } from './theme/useAddDocumentButtonTheme';
 
 export interface AddDocumentButtonProps {
   onDocumentAdded: () => void;
+  disabled?: boolean;
 }
 
 /** Fixed row at the bottom of the Documents screen that opens the create-document modal. */
-export const AddDocumentButton = ({ onDocumentAdded }: AddDocumentButtonProps) => {
+export const AddDocumentButton = ({
+  onDocumentAdded,
+  disabled = false,
+}: AddDocumentButtonProps) => {
   const { isOpen, open, close } = useAddDocumentButton();
   const strings = useAddDocumentButtonStrings();
   const { styles } = useAddDocumentButtonTheme();
@@ -23,6 +27,7 @@ export const AddDocumentButton = ({ onDocumentAdded }: AddDocumentButtonProps) =
       <Button
         label={strings.addDocument}
         onPress={open}
+        disabled={disabled}
         fullWidth
         icon="plus"
       />
