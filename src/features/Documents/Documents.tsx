@@ -31,6 +31,7 @@ export const Documents = () => {
     handleRefresh,
     handleRetry,
     handleEndReached,
+    handleDocumentAdded,
     renderItem,
     keyExtractor,
   } = useDocumentsScreen();
@@ -85,7 +86,7 @@ export const Documents = () => {
         />
       )}
 
-      <AddDocumentButton />
+      <AddDocumentButton onDocumentAdded={handleDocumentAdded} />
     </View>
   );
 };

@@ -4,6 +4,7 @@ import { Controller } from 'react-hook-form';
 
 import { Modal } from 'components/Modal/Modal';
 import { Button } from 'components/Button/Button';
+import { Text } from 'components/Text/Text';
 
 import { useCreateDocumentModal } from './hooks/useCreateDocumentModal';
 import { useCreateDocumentModalStrings } from './hooks/useCreateDocumentModalStrings';
@@ -12,18 +13,20 @@ import { useCreateDocumentModalTheme } from './theme/useCreateDocumentModalTheme
 export interface CreateDocumentModalProps {
   visible: boolean;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export const CreateDocumentModal = ({ visible, onClose }: CreateDocumentModalProps) => {
+export const CreateDocumentModal = ({ visible, onClose, onSuccess }: CreateDocumentModalProps) => {
   const strings = useCreateDocumentModalStrings();
   const {
     control,
     handleFormSubmit,
     isSubmitting,
+    submitError,
     renderNameField,
     renderVersionField,
     renderFileField,
-  } = useCreateDocumentModal({ visible, onClose });
+  } = useCreateDocumentModal({ visible, onClose, onSuccess });
   const { styles } = useCreateDocumentModalTheme();
 
   return (
@@ -38,6 +41,11 @@ export const CreateDocumentModal = ({ visible, onClose }: CreateDocumentModalPro
         <Controller control={control} name="name" render={renderNameField} />
         <Controller control={control} name="version" render={renderVersionField} />
         <Controller control={control} name="files" render={renderFileField} />
+        {submitError ? (
+          <Text size="font-size-xs" color="font-danger">
+            {submitError}
+          </Text>
+        ) : null}
         <Button
           label={strings.submitLabel}
           onPress={handleFormSubmit}

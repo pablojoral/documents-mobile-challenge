@@ -1,16 +1,18 @@
 jest.mock('services/api/apiClient', () => ({
-  apiClient: { get: jest.fn() },
+  apiClient: { get: jest.fn(), post: jest.fn() },
 }));
 
 import { apiClient } from 'services/api/apiClient';
-import { makeDocumentsPage } from 'test/fixtures';
+import { makeDocument, makeDocumentsPage } from 'test/fixtures';
 import { documentsService } from './DocumentsService';
 
 const mockedGet = apiClient.get as jest.Mock;
+const mockedPost = apiClient.post as jest.Mock;
 
 describe('DocumentsService', () => {
   beforeEach(() => {
     mockedGet.mockReset();
+    mockedPost.mockReset();
   });
 
   it('GETs /documents with the given page/limit/sort and returns the paginated response', async () => {
@@ -38,5 +40,33 @@ describe('DocumentsService', () => {
   it('propagates errors (no swallowing)', async () => {
     mockedGet.mockRejectedValue(new Error('boom'));
     await expect(documentsService.getDocuments()).rejects.toThrow('boom');
+  });
+
+  it('POSTs /documents with the given payload and returns the created document', async () => {
+    const created = makeDocument({ Title: 'Report' });
+    mockedPost.mockResolvedValue({ data: created });
+
+    const payload = {
+      Title: 'Report',
+      Version: '1.0.0',
+      Attachments: ['a.pdf'],
+      Contributors: [{ ID: 'local-user', Name: 'You' }],
+    };
+    const result = await documentsService.createDocument(payload);
+
+    expect(mockedPost).toHaveBeenCalledWith('/documents', payload);
+    expect(result).toBe(created);
+  });
+
+  it('propagates create errors (no swallowing)', async () => {
+    mockedPost.mockRejectedValue(new Error('boom'));
+    await expect(
+      documentsService.createDocument({
+        Title: 'Report',
+        Version: '1.0.0',
+        Attachments: [],
+        Contributors: [],
+      }),
+    ).rejects.toThrow('boom');
   });
 });

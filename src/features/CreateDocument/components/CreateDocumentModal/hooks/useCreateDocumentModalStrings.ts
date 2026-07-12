@@ -9,4 +9,5 @@ export const useCreateDocumentModalStrings = () => ({
   removeFileLabel: 'Remove',
   tooLargeFileLabel: 'Too large (max 10 MB)',
   submitLabel: 'Create document',
+  submitError: 'Something went wrong creating the document. Try again.',
 });

@@ -5,11 +5,12 @@ jest.mock('features/CreateDocument/components/AddDocumentButton/AddDocumentButto
 
 import React from 'react';
 import { ActivityIndicator } from 'react-native';
-import { render, fireEvent } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
 
 import { useDocuments } from 'query/Documents/useDocuments';
 import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
 import { makeDocument, makeDocumentsPage } from 'test/fixtures';
+import { renderWithQuery } from 'test/renderWithQuery';
 import { Documents } from './Documents';
 
 const mockUseDocuments = useDocuments as jest.Mock;
@@ -41,26 +42,26 @@ describe('Documents screen', () => {
 
   it('shows a spinner while loading', () => {
     setQuery({ isLoading: true });
-    const { UNSAFE_getByType, queryByText } = render(<Documents />);
+    const { UNSAFE_getByType, queryByText } = renderWithQuery(<Documents />);
     expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     expect(queryByText('No documents yet')).toBeNull();
   });
 
   it('renders documents on success', () => {
     setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
-    const { getByText } = render(<Documents />);
+    const { getByText } = renderWithQuery(<Documents />);
     expect(getByText('Alpha')).toBeTruthy();
   });
 
   it('shows the empty state when there are no documents', () => {
     setQuery({ data: withPages() });
-    const { getByText } = render(<Documents />);
+    const { getByText } = renderWithQuery(<Documents />);
     expect(getByText('No documents yet')).toBeTruthy();
   });
 
   it('shows the error state and retries', () => {
     setQuery({ isError: true });
-    const { getByText } = render(<Documents />);
+    const { getByText } = renderWithQuery(<Documents />);
     expect(getByText('Something went wrong')).toBeTruthy();
     fireEvent.press(getByText('Try again'));
     expect(refetch).toHaveBeenCalledTimes(1);
@@ -68,7 +69,7 @@ describe('Documents screen', () => {
 
   it('updates the sort trigger when a new sort is chosen', () => {
     setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
-    const { getByText, getAllByText } = render(<Documents />);
+    const { getByText, getAllByText } = renderWithQuery(<Documents />);
 
     fireEvent.press(getAllByText('Newest first')[0]); // open sort sheet
     fireEvent.press(getByText('Oldest first'));
@@ -79,14 +80,30 @@ describe('Documents screen', () => {
 
   it('switches to grid view without losing the document', () => {
     setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
-    const { getByText, getByLabelText } = render(<Documents />);
+    const { getByText, getByLabelText } = renderWithQuery(<Documents />);
     fireEvent.press(getByLabelText('Grid'));
     expect(getByText('Alpha')).toBeTruthy();
   });
 
   it('renders the add-document button', () => {
     setQuery({ data: withPages() });
-    render(<Documents />);
+    renderWithQuery(<Documents />);
     expect(jest.mocked(AddDocumentButton)).toHaveBeenCalled();
+  });
+
+  it('resets the sort to created-desc when the add-document button reports a successful add', () => {
+    setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
+    const { getByText, getAllByText } = renderWithQuery(<Documents />);
+
+    fireEvent.press(getAllByText('Newest first')[0]);
+    fireEvent.press(getByText('Oldest first'));
+    expect(getByText('Oldest first')).toBeTruthy();
+
+    const { onDocumentAdded } = jest.mocked(AddDocumentButton).mock.calls[
+      jest.mocked(AddDocumentButton).mock.calls.length - 1
+    ][0];
+    act(() => onDocumentAdded());
+
+    expect(getByText('Newest first')).toBeTruthy();
   });
 });

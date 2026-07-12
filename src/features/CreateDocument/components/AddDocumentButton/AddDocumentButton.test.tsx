@@ -12,17 +12,20 @@ const { CreateDocumentModal } = jest.requireMock(
 ) as { CreateDocumentModal: jest.Mock };
 
 describe('AddDocumentButton', () => {
+  const onDocumentAdded = jest.fn();
+
   beforeEach(() => {
     CreateDocumentModal.mockClear();
+    onDocumentAdded.mockReset();
   });
 
   it('renders the trigger button', () => {
-    const { getByText } = render(<AddDocumentButton />);
+    const { getByText } = render(<AddDocumentButton onDocumentAdded={onDocumentAdded} />);
     expect(getByText('Add document')).toBeTruthy();
   });
 
   it('renders the modal closed initially', () => {
-    render(<AddDocumentButton />);
+    render(<AddDocumentButton onDocumentAdded={onDocumentAdded} />);
     expect(CreateDocumentModal).toHaveBeenLastCalledWith(
       expect.objectContaining({ visible: false }),
       undefined,
@@ -30,7 +33,7 @@ describe('AddDocumentButton', () => {
   });
 
   it('opens the modal when the button is pressed', () => {
-    const { getByText } = render(<AddDocumentButton />);
+    const { getByText } = render(<AddDocumentButton onDocumentAdded={onDocumentAdded} />);
     fireEvent.press(getByText('Add document'));
     expect(CreateDocumentModal).toHaveBeenLastCalledWith(
       expect.objectContaining({ visible: true }),
@@ -39,7 +42,7 @@ describe('AddDocumentButton', () => {
   });
 
   it('closes the modal when onClose is called', () => {
-    const { getByText } = render(<AddDocumentButton />);
+    const { getByText } = render(<AddDocumentButton onDocumentAdded={onDocumentAdded} />);
     fireEvent.press(getByText('Add document'));
 
     const { onClose } = CreateDocumentModal.mock.calls[
@@ -51,5 +54,17 @@ describe('AddDocumentButton', () => {
       expect.objectContaining({ visible: false }),
       undefined,
     );
+  });
+
+  it('forwards onDocumentAdded as the modal onSuccess', () => {
+    const { getByText } = render(<AddDocumentButton onDocumentAdded={onDocumentAdded} />);
+    fireEvent.press(getByText('Add document'));
+
+    const { onSuccess } = CreateDocumentModal.mock.calls[
+      CreateDocumentModal.mock.calls.length - 1
+    ][0];
+    onSuccess();
+
+    expect(onDocumentAdded).toHaveBeenCalledTimes(1);
   });
 });

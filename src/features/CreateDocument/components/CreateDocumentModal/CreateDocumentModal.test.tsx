@@ -36,10 +36,12 @@ const makePickResponse = (overrides: Partial<{ uri: string; name: string | null;
 
 describe('CreateDocumentModal', () => {
   const mutateAsync = jest.fn();
+  const onSuccess = jest.fn();
 
   beforeEach(() => {
     mutateAsync.mockReset().mockResolvedValue(undefined);
     mockPick.mockReset();
+    onSuccess.mockReset();
     mockUseAddDocument.mockReturnValue({
       mutateAsync,
       isPending: false,
@@ -48,7 +50,7 @@ describe('CreateDocumentModal', () => {
 
   it('renders all three fields and the submit button', () => {
     const { getByText, getByLabelText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
     expect(getByLabelText('Name')).toBeTruthy();
     expect(getByLabelText('Version')).toBeTruthy();
@@ -57,7 +59,9 @@ describe('CreateDocumentModal', () => {
   });
 
   it('shows validation errors when submitting an empty form', async () => {
-    const { getByText, findByText } = render(<CreateDocumentModal visible onClose={jest.fn()} />);
+    const { getByText, findByText } = render(
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
+    );
     fireEvent.press(getByText('Create document'));
 
     expect(await findByText('Name is required.')).toBeTruthy();
@@ -68,7 +72,7 @@ describe('CreateDocumentModal', () => {
 
   it('shows an error when the name exceeds the max length', async () => {
     const { getByLabelText, getByText, findByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
     fireEvent.changeText(getByLabelText('Name'), 'a'.repeat(101));
     fireEvent.press(getByText('Create document'));
@@ -78,7 +82,7 @@ describe('CreateDocumentModal', () => {
 
   it('shows an error for an invalid version format', async () => {
     const { getByLabelText, getByText, findByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
     fireEvent.changeText(getByLabelText('Name'), 'Report');
     fireEvent.changeText(getByLabelText('Version'), 'not-a-version');
@@ -92,7 +96,7 @@ describe('CreateDocumentModal', () => {
   it('shows an error when the picked file is too large', async () => {
     mockPick.mockResolvedValue([makePickResponse({ size: 11 * 1024 * 1024 })]);
     const { getByLabelText, getByText, findByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
     fireEvent.changeText(getByLabelText('Name'), 'Report');
     fireEvent.changeText(getByLabelText('Version'), '1.0.0');
@@ -111,7 +115,7 @@ describe('CreateDocumentModal', () => {
       makePickResponse({ uri: 'file:///big.pdf', name: 'big.pdf', size: 11 * 1024 * 1024 }),
     ]);
     const { getByText, getAllByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
     fireEvent.press(getByText('Choose file'));
 
@@ -121,11 +125,11 @@ describe('CreateDocumentModal', () => {
     expect(getAllByText('Too large (max 10 MB)')).toHaveLength(1);
   });
 
-  it('submits the form and closes the modal on success', async () => {
+  it('submits the form, calls onSuccess, and closes the modal on success', async () => {
     mockPick.mockResolvedValue([makePickResponse()]);
     const onClose = jest.fn();
     const { getByLabelText, getByText } = render(
-      <CreateDocumentModal visible onClose={onClose} />,
+      <CreateDocumentModal visible onClose={onClose} onSuccess={onSuccess} />,
     );
 
     fireEvent.changeText(getByLabelText('Name'), 'Report');
@@ -143,6 +147,7 @@ describe('CreateDocumentModal', () => {
         files: [expect.objectContaining({ name: 'a.pdf' })],
       }),
     );
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
@@ -151,7 +156,7 @@ describe('CreateDocumentModal', () => {
       .mockResolvedValueOnce([makePickResponse({ uri: 'file:///a.pdf', name: 'a.pdf' })])
       .mockResolvedValueOnce([makePickResponse({ uri: 'file:///b.pdf', name: 'b.pdf' })]);
     const { getByLabelText, getByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
 
     fireEvent.changeText(getByLabelText('Name'), 'Report');
@@ -178,7 +183,7 @@ describe('CreateDocumentModal', () => {
   it('removes a picked file when its remove action is pressed', async () => {
     mockPick.mockResolvedValue([makePickResponse()]);
     const { getByText, getByLabelText, queryByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
 
     fireEvent.press(getByText('Choose file'));
@@ -195,7 +200,7 @@ describe('CreateDocumentModal', () => {
     ) as unknown as Parameters<typeof mockPick.mockResolvedValue>[0];
     mockPick.mockResolvedValue(responses);
     const { getByText, queryByText } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
 
     fireEvent.press(getByText('Choose file'));
@@ -207,13 +212,35 @@ describe('CreateDocumentModal', () => {
     expect(mockPick).not.toHaveBeenCalled();
   });
 
+  it('shows a submit error, does not call onSuccess, and keeps the modal open when the mutation fails', async () => {
+    mutateAsync.mockReset().mockRejectedValue(new Error('boom'));
+    mockPick.mockResolvedValue([makePickResponse()]);
+    const onClose = jest.fn();
+    const { getByLabelText, getByText, findByText } = render(
+      <CreateDocumentModal visible onClose={onClose} onSuccess={onSuccess} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Name'), 'Report');
+    fireEvent.changeText(getByLabelText('Version'), '1.0.0');
+    fireEvent.press(getByText('Choose file'));
+    await waitFor(() => expect(getByText('a.pdf')).toBeTruthy());
+
+    fireEvent.press(getByText('Create document'));
+
+    expect(
+      await findByText('Something went wrong creating the document. Try again.'),
+    ).toBeTruthy();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('shows a loading submit button while the mutation is pending', () => {
     mockUseAddDocument.mockReturnValue({
       mutateAsync,
       isPending: true,
     } as unknown as ReturnType<typeof useAddDocument>);
     const { queryByText, UNSAFE_getAllByType } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
 
     expect(queryByText('Create document')).toBeNull();
@@ -222,13 +249,13 @@ describe('CreateDocumentModal', () => {
 
   it('resets the form fields after the modal is closed and reopened', () => {
     const { getByLabelText, rerender } = render(
-      <CreateDocumentModal visible onClose={jest.fn()} />,
+      <CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />,
     );
     fireEvent.changeText(getByLabelText('Name'), 'Report');
     expect(getByLabelText('Name').props.value).toBe('Report');
 
-    rerender(<CreateDocumentModal visible={false} onClose={jest.fn()} />);
-    rerender(<CreateDocumentModal visible onClose={jest.fn()} />);
+    rerender(<CreateDocumentModal visible={false} onClose={jest.fn()} onSuccess={onSuccess} />);
+    rerender(<CreateDocumentModal visible onClose={jest.fn()} onSuccess={onSuccess} />);
 
     expect(getByLabelText('Name').props.value).toBe('');
   });

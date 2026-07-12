@@ -163,12 +163,17 @@ An "Add document" button (with a leading plus icon) at the bottom of the Documen
 - **Oversized files are highlighted per file, not just via one form-level message** — the 10 MB
   limit applies per attachment (not combined), and `DocumentInput`'s `maxFileSize` flags each
   oversized file's name in red with a "Too large" caption as soon as it's picked.
-- **Decision — document creation is entirely client-side, no network call.** The challenge server has
-  no `POST /documents` handler — even with the seeded/paginated dataset (see the Documents feed
-  decisions above), there's nowhere to persist a created document server-side. So
-  `query/Documents/useAddDocument.ts` builds the `Document` locally and prepends it into every cached
-  page via `setQueriesData`, and deliberately never invalidates (a refetch would replace the cache
-  with the server's own dataset and lose the one just "created").
+- **Decision — `POST /documents` persists the new document server-side.** The challenge server
+  originally had no create endpoint; `server/server.go` now exposes `POST /documents`, appending to
+  the same in-memory, mutex-guarded `documents` slice `GET /documents` reads from (see the Documents
+  feed decisions above), and returning the server-assigned `ID`/`CreatedAt`/`UpdatedAt`.
+  `query/Documents/useAddDocument.ts` calls it via `DocumentsService.createDocument` and, on success,
+  invalidates every cached documents query (`qk.documents.root`) rather than splicing the response
+  into the cache — a manual splice can only place the new document correctly for the sort variant
+  visible at creation time, leaving every other cached sort with it pinned in the wrong spot until
+  invalidated some other way. `useCreateDocumentModal` also resets the active sort to `created-desc`
+  on success, so the user immediately sees the new document at the top of a freshly refetched,
+  correctly-ordered list.
 - **No "current user" concept exists yet**, so new documents get a placeholder contributor
   (`{ ID: 'local-user', Name: 'You' }`) — revisit once/if auth is introduced.
 
@@ -291,10 +296,9 @@ provider.
 - **Unit** — pure utilities: relative-date formatting (`formatRelativeDate`).
 - **Service** — `DocumentsService` with `apiClient` mocked (request path, page/limit/sort params,
   response passthrough).
-- **Hooks** — the `useDocuments` infinite-query hook with the service mocked (first page, next-page
-  fetch, error state), the `useAddDocument` mutation (asserted against a real `QueryClient` via
-  `renderHookWithQuery` — no service to mock, since it never calls the network), plus the screen/card
-  logic and strings hooks (`useDocumentsScreen`, `useDocumentCard`, …).
+- **Hooks** — the `useDocuments` infinite-query hook and the `useAddDocument` mutation, both with
+  `DocumentsService` mocked (payload mapping, cache invalidation on success, error propagation),
+  plus the screen/card logic and strings hooks (`useDocumentsScreen`, `useDocumentCard`, …).
 - **Component** — RNTL render tests for the shared primitives (`Text`, `Button`,
   `ActivityIndicator`, `Modal`, `TextInput`, `DocumentInput`), the list/grid cards, the empty /
   error / toggle / sort states, and the create-document flow (`CreateDocumentModal` — validation,

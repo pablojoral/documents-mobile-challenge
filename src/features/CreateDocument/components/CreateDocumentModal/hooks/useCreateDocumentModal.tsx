@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm, type ControllerRenderProps } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -24,11 +24,17 @@ const DEFAULT_VALUES: CreateDocumentFormValues = {
 interface UseCreateDocumentModalParams {
   visible: boolean;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export const useCreateDocumentModal = ({ visible, onClose }: UseCreateDocumentModalParams) => {
+export const useCreateDocumentModal = ({
+  visible,
+  onClose,
+  onSuccess,
+}: UseCreateDocumentModalParams) => {
   const strings = useCreateDocumentModalStrings();
   const { mutateAsync, isPending } = useAddDocument();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control,
@@ -43,19 +49,26 @@ export const useCreateDocumentModal = ({ visible, onClose }: UseCreateDocumentMo
   useEffect(() => {
     if (!visible) {
       reset(DEFAULT_VALUES);
+      setSubmitError(null);
     }
   }, [visible, reset]);
 
   const onSubmit = useCallback(
     async (values: CreateDocumentFormValues) => {
-      await mutateAsync({
-        name: values.name,
-        version: values.version,
-        files: values.files,
-      });
-      onClose();
+      setSubmitError(null);
+      try {
+        await mutateAsync({
+          name: values.name,
+          version: values.version,
+          files: values.files,
+        });
+        onSuccess();
+        onClose();
+      } catch {
+        setSubmitError(strings.submitError);
+      }
     },
-    [mutateAsync, onClose],
+    [mutateAsync, onClose, onSuccess, strings.submitError],
   );
 
   const handleFormSubmit = handleSubmit(onSubmit);
@@ -114,6 +127,7 @@ export const useCreateDocumentModal = ({ visible, onClose }: UseCreateDocumentMo
     control,
     handleFormSubmit,
     isSubmitting: isPending,
+    submitError,
     renderNameField,
     renderVersionField,
     renderFileField,
