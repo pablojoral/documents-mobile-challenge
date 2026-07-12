@@ -6,4 +6,8 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(?:jest-)?react-native|@react-native|@react-navigation|@tanstack|axios)',
   ],
+  // .claude/worktrees/* are separate git worktrees with their own node_modules;
+  // picking up their test files causes cross-copy module resolution errors
+  // (e.g. duplicate React instances) unrelated to this working tree.
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/.claude/worktrees/'],
 };

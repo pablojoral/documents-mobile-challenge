@@ -1,4 +1,5 @@
 import type { Document, NewDocumentNotification, User } from 'models/models';
+import type { DocumentsPage } from 'services/api/services/DocumentsService';
 
 let seq = 0;
 
@@ -23,6 +24,21 @@ export const makeDocument = (overrides: Partial<Document> = {}): Document => {
     Attachments: ['a.pdf'],
     Contributors: [makeUser()],
     Version: '1.0.0',
+    ...overrides,
+  };
+};
+
+/** Builds a `DocumentsPage` fixture with overridable fields. */
+export const makeDocumentsPage = (
+  overrides: Partial<DocumentsPage> = {},
+): DocumentsPage => {
+  const data = overrides.Data ?? [makeDocument()];
+  return {
+    Data: data,
+    Page: 1,
+    Limit: 20,
+    Total: data.length,
+    HasMore: false,
     ...overrides,
   };
 };

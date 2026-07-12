@@ -1,8 +1,13 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  InfiniteData,
+} from '@tanstack/react-query';
 
 import { qk } from 'query/keys';
 import type { Document, User } from 'models/models';
 import type { PickedFile } from 'components/DocumentInput/useDocumentInput';
+import type { DocumentsPage } from 'services/api/services/DocumentsService';
 
 export interface AddDocumentInput {
   name: string;
@@ -27,11 +32,12 @@ const buildDocument = (input: AddDocumentInput): Document => {
 
 /**
  * Creates a document entirely client-side. The challenge server has no real
- * create endpoint — `GET /documents` returns freshly randomized fake data on
- * every call and nothing is ever persisted — so this never calls the network.
- * It builds the `Document` locally and writes it straight into the query
- * cache, and deliberately never invalidates `qk.documents.root`: a refetch
- * would replace the cache with new random documents and discard this one.
+ * create endpoint — its seeded dataset never learns about this document — so
+ * this never calls the network. It builds the `Document` locally and prepends
+ * it into `pages[0].Data` of every cached documents page (one per sort order,
+ * matched via `qk.documents.root`), and deliberately never invalidates: a
+ * refetch would replace the cache with the server's dataset and silently drop
+ * the locally-added document.
  */
 export function useAddDocument() {
   const queryClient = useQueryClient();
@@ -39,10 +45,28 @@ export function useAddDocument() {
   return useMutation({
     mutationFn: async (input: AddDocumentInput) => buildDocument(input),
     onSuccess: document => {
-      queryClient.setQueryData<Document[]>(qk.documents.list(), current => [
-        document,
-        ...(current ?? []),
-      ]);
+      queryClient.setQueriesData<InfiniteData<DocumentsPage>>(
+        { queryKey: qk.documents.root },
+        current => {
+          if (!current) {
+            return current;
+          }
+
+          const [firstPage, ...restPages] = current.pages;
+
+          return {
+            ...current,
+            pages: [
+              {
+                ...firstPage,
+                Data: [document, ...firstPage.Data],
+                Total: firstPage.Total + 1,
+              },
+              ...restPages,
+            ],
+          };
+        },
+      );
     },
   });
 }

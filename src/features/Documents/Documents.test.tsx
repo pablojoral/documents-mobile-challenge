@@ -9,11 +9,16 @@ import { render, fireEvent } from '@testing-library/react-native';
 
 import { useDocuments } from 'query/Documents/useDocuments';
 import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
-import { makeDocument } from 'test/fixtures';
+import { makeDocument, makeDocumentsPage } from 'test/fixtures';
 import { Documents } from './Documents';
 
 const mockUseDocuments = useDocuments as jest.Mock;
 const refetch = jest.fn();
+const fetchNextPage = jest.fn();
+
+const withPages = (...documents: ReturnType<typeof makeDocument>[]) => ({
+  pages: [makeDocumentsPage({ Data: documents })],
+});
 
 const setQuery = (overrides: Record<string, unknown> = {}) =>
   mockUseDocuments.mockReturnValue({
@@ -22,12 +27,16 @@ const setQuery = (overrides: Record<string, unknown> = {}) =>
     isError: false,
     refetch,
     isRefetching: false,
+    fetchNextPage,
+    hasNextPage: false,
+    isFetchingNextPage: false,
     ...overrides,
   });
 
 describe('Documents screen', () => {
   beforeEach(() => {
     refetch.mockReset();
+    fetchNextPage.mockReset();
   });
 
   it('shows a spinner while loading', () => {
@@ -38,13 +47,13 @@ describe('Documents screen', () => {
   });
 
   it('renders documents on success', () => {
-    setQuery({ data: [makeDocument({ Title: 'Alpha' })] });
+    setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
     const { getByText } = render(<Documents />);
     expect(getByText('Alpha')).toBeTruthy();
   });
 
   it('shows the empty state when there are no documents', () => {
-    setQuery({ data: [] });
+    setQuery({ data: withPages() });
     const { getByText } = render(<Documents />);
     expect(getByText('No documents yet')).toBeTruthy();
   });
@@ -58,7 +67,7 @@ describe('Documents screen', () => {
   });
 
   it('updates the sort trigger when a new sort is chosen', () => {
-    setQuery({ data: [makeDocument({ Title: 'Alpha' })] });
+    setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
     const { getByText, getAllByText } = render(<Documents />);
 
     fireEvent.press(getAllByText('Newest first')[0]); // open sort sheet
@@ -69,14 +78,14 @@ describe('Documents screen', () => {
   });
 
   it('switches to grid view without losing the document', () => {
-    setQuery({ data: [makeDocument({ Title: 'Alpha' })] });
+    setQuery({ data: withPages(makeDocument({ Title: 'Alpha' })) });
     const { getByText, getByLabelText } = render(<Documents />);
     fireEvent.press(getByLabelText('Grid'));
     expect(getByText('Alpha')).toBeTruthy();
   });
 
   it('renders the add-document button', () => {
-    setQuery({ data: [] });
+    setQuery({ data: withPages() });
     render(<Documents />);
     expect(jest.mocked(AddDocumentButton)).toHaveBeenCalled();
   });

@@ -11,6 +11,7 @@ import { ViewModeToggle } from './components/ViewModeToggle/ViewModeToggle';
 import { SortSelector } from './components/SortSelector/SortSelector';
 import { DocumentsEmptyState } from './components/DocumentsEmptyState/DocumentsEmptyState';
 import { DocumentsError } from './components/DocumentsError/DocumentsError';
+import { DocumentsListFooter } from './components/DocumentsListFooter/DocumentsListFooter';
 import { NotificationsButton } from 'features/Notifications/components/NotificationsButton/NotificationsButton';
 import { AddDocumentButton } from 'features/CreateDocument/components/AddDocumentButton/AddDocumentButton';
 
@@ -21,6 +22,7 @@ export const Documents = () => {
     isLoading,
     isError,
     isRefreshing,
+    isFetchingNextPage,
     viewMode,
     setViewMode,
     sort,
@@ -28,6 +30,7 @@ export const Documents = () => {
     numColumns,
     handleRefresh,
     handleRetry,
+    handleEndReached,
     renderItem,
     keyExtractor,
   } = useDocumentsScreen();
@@ -67,6 +70,11 @@ export const Documents = () => {
           columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={DocumentsEmptyState}
+          ListFooterComponent={
+            isFetchingNextPage ? DocumentsListFooter : undefined
+          }
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

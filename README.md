@@ -67,20 +67,23 @@ we only ever follow the system appearance, a provider would add indirection with
 ## Documents feed & data layer
 
 The documents feed is wired end to end: a single HTTP client, a service layer, a TanStack Query
-hook, client-side sorting, and a virtualized list/grid screen. The decisions that shaped it,
-constrained by the challenge server's single unpaginated `GET /documents` endpoint:
+hook, server-side pagination and sorting, and a virtualized list/grid screen. The decisions that
+shaped it:
 
 - **Single Axios client behind service classes.** `services/api/apiClient.ts` is the one HTTP
   instance (base URL, timeout, JSON headers); every call goes through a `BaseService` subclass
   singleton (`services/api/services/DocumentsService.ts`) — never `axios` or `fetch` directly — so
   base URL, headers, auth, and error handling have a single home.
-- **`useQuery`, not `useInfiniteQuery`.** `GET /documents` returns the entire array in one response
-  (the server isn't paginated), so `query/Documents/useDocuments.ts` uses a single `useQuery`.
-  Infinite-query cursor machinery would model pages that don't exist — revisit only if the API
-  gains pagination.
-- **Client-side sorting.** The server returns unordered data and exposes no sort params, and the
-  full list is already in memory (see above), so `features/Documents/utils/sortDocuments.ts` orders
-  it on the client (title A–Z, newest/oldest first) as a pure, non-mutating transform.
+- **Decision — seed 100 documents at server start, and paginate/sort `GET /documents` server-side.**
+  The original server returned a fresh random 1–21 documents per call, with no pagination or sort —
+  not a stable set to page through. It now seeds 100 documents once at startup and accepts
+  `page`/`limit`/`sort` params, returning `{ Data, Page, Limit, Total, HasMore }`.
+- **`useInfiniteQuery`, not `useQuery`,** to match: `query/Documents/useDocuments.ts` pages through
+  the results, and `useDocumentsScreen` calls `fetchNextPage` on `onEndReached`.
+- **Server-side sorting, not client-side.** The removed `sortDocuments.ts` transform is now the
+  server's `sort` param — a paginated client only holds the pages it's scrolled through, so it can't
+  sort the full set itself. Changing sort swaps the query key (`qk.documents.list(sort)`) and
+  refetches from page 1.
 - **No serialization / DTO-mapping layer.** The types in `models/models.ts` mirror the server JSON
   verbatim (PascalCase `ID` / `CreatedAt`, RFC3339 date strings) and services return `res.data`
   as-is. A normalize/transform layer isn't worth the indirection at this project's size —
@@ -160,11 +163,12 @@ An "Add document" button (with a leading plus icon) at the bottom of the Documen
 - **Oversized files are highlighted per file, not just via one form-level message** — the 10 MB
   limit applies per attachment (not combined), and `DocumentInput`'s `maxFileSize` flags each
   oversized file's name in red with a "Too large" caption as soon as it's picked.
-- **Decision — document creation is entirely client-side, no network call.** The challenge server's
-  `GET /documents` has no persistence or `POST` handler; it just returns fresh random fake data on
-  every call. So `query/Documents/useAddDocument.ts` builds the `Document` locally and writes it into
-  the query cache via `setQueryData`, and deliberately never invalidates (a refetch would replace the
-  cache with unrelated random documents and lose the one just "created").
+- **Decision — document creation is entirely client-side, no network call.** The challenge server has
+  no `POST /documents` handler — even with the seeded/paginated dataset (see the Documents feed
+  decisions above), there's nowhere to persist a created document server-side. So
+  `query/Documents/useAddDocument.ts` builds the `Document` locally and prepends it into every cached
+  page via `setQueriesData`, and deliberately never invalidates (a refetch would replace the cache
+  with the server's own dataset and lose the one just "created").
 - **No "current user" concept exists yet**, so new documents get a placeholder contributor
   (`{ ID: 'local-user', Name: 'You' }`) — revisit once/if auth is introduced.
 
@@ -239,6 +243,10 @@ The app consumes two data sources from the challenge's testing server:
 - the documents **JSON HTTP API**, and
 - a **WebSocket** connection for real-time notifications.
 
+- **Decision — the test server's Go source lives here, at `server/`, not a separate repo.** Server
+  changes (seeding, pagination, sort — see above) are then a normal commit in this repo, and
+  `git clone` + `go run server/server.go` is all that's needed to get a matching backend running.
+
 Both the API base URL and the WebSocket URL are read from configuration (environment) rather than
 hardcoded, so the same build can point at different servers.
 
@@ -259,7 +267,7 @@ yarn test        # or: yarn jest
 v13) for anything that renders. Config lives in `jest.config.js` + `jest.setup.ts`.
 
 **In place today.** The harness, documents-feed, WebSocket-client, notifications-store, and
-create-document suites are implemented — 36 test files run green across every layer below. Shared
+create-document suites are implemented — 40 test files run green across every layer below. Shared
 helpers live in
 `src/test/`: `makeDocument` / `makeUser` / `makeNotification` fixtures (`fixtures.ts`),
 `renderWithQuery` / `renderHookWithQuery`
@@ -280,13 +288,13 @@ provider.
   await settled async state with `waitFor`; no assertions on internal state or styles.
 
 **Test layers**
-- **Unit** — pure utilities: relative-date formatting (`formatRelativeDate`) and client-side
-  `sortDocuments`.
-- **Service** — `DocumentsService` with `apiClient` mocked (request path + response passthrough).
-- **Hooks** — the `useDocuments` query hook with the service mocked, the `useAddDocument` mutation
-  (asserted against a real `QueryClient` via `renderHookWithQuery` — no service to mock, since it
-  never calls the network), plus the screen/card logic and strings hooks (`useDocumentsScreen`,
-  `useDocumentCard`, …).
+- **Unit** — pure utilities: relative-date formatting (`formatRelativeDate`).
+- **Service** — `DocumentsService` with `apiClient` mocked (request path, page/limit/sort params,
+  response passthrough).
+- **Hooks** — the `useDocuments` infinite-query hook with the service mocked (first page, next-page
+  fetch, error state), the `useAddDocument` mutation (asserted against a real `QueryClient` via
+  `renderHookWithQuery` — no service to mock, since it never calls the network), plus the screen/card
+  logic and strings hooks (`useDocumentsScreen`, `useDocumentCard`, …).
 - **Component** — RNTL render tests for the shared primitives (`Text`, `Button`,
   `ActivityIndicator`, `Modal`, `TextInput`, `DocumentInput`), the list/grid cards, the empty /
   error / toggle / sort states, and the create-document flow (`CreateDocumentModal` — validation,

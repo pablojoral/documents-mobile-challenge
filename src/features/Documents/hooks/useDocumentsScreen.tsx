@@ -4,25 +4,33 @@ import { useDocuments } from 'query/Documents/useDocuments';
 import type { Document } from 'models/models';
 
 import type { DocumentSort, DocumentViewMode } from '../types';
-import { sortDocuments } from '../utils/sortDocuments';
 import { DocumentListCard } from '../components/DocumentListCard/DocumentListCard';
 import { DocumentGridCard } from '../components/DocumentGridCard/DocumentGridCard';
 
 /**
- * All logic for the Documents screen: the documents query, view-mode and sort
- * state, derived/sorted item list, and the stable `renderItem`/`keyExtractor`
- * the FlatList consumes. `/documents` is a single unpaginated array, so the
- * whole list is fetched at once (pull-to-refresh reloads it).
+ * All logic for the Documents screen: the paginated documents query, view-mode
+ * and sort state, derived item list, and the stable `renderItem`/`keyExtractor`/
+ * `handleEndReached` the FlatList consumes. Sorting and pagination are both
+ * server-side — changing `sort` swaps the query key and refetches from page 1.
  */
 export const useDocumentsScreen = () => {
   const [viewMode, setViewMode] = useState<DocumentViewMode>('list');
   const [sort, setSort] = useState<DocumentSort>('created-desc');
 
-  const { data, isLoading, isError, refetch, isRefetching } = useDocuments();
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useDocuments(sort);
 
   const documents = useMemo(
-    () => sortDocuments(data ?? [], sort),
-    [data, sort],
+    () => data?.pages.flatMap(page => page.Data) ?? [],
+    [data],
   );
 
   const numColumns = viewMode === 'grid' ? 2 : 1;
@@ -30,6 +38,12 @@ export const useDocumentsScreen = () => {
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const keyExtractor = useCallback((document: Document) => document.ID, []);
 
@@ -48,6 +62,7 @@ export const useDocumentsScreen = () => {
     isLoading,
     isError,
     isRefreshing: isRefetching,
+    isFetchingNextPage,
     viewMode,
     setViewMode,
     sort,
@@ -55,6 +70,7 @@ export const useDocumentsScreen = () => {
     numColumns,
     handleRefresh,
     handleRetry: handleRefresh,
+    handleEndReached,
     renderItem,
     keyExtractor,
   };

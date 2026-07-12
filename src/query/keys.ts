@@ -1,3 +1,5 @@
+import type { DocumentSort } from 'services/api/services/DocumentsService';
+
 /**
  * Query key registry.
  *
@@ -17,7 +19,7 @@
 export const qk = {
   documents: {
     root: ['documents'] as const,
-    list: () => ['documents', 'list'] as const,
+    list: (sort: DocumentSort) => ['documents', 'list', sort] as const,
   },
 } as const;
 
