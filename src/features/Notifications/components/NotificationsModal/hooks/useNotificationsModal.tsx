@@ -1,9 +1,8 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FlatList, ListRenderItemInfo, ViewToken } from 'react-native';
 
 import {
   useNotificationsStore,
-  useUnreadNotificationsCount,
   type StoredNotification,
 } from 'store/Notifications/useNotificationsStore';
 
@@ -27,8 +26,34 @@ const VIEWABILITY_CONFIG = {
 export const useNotificationsModal = (visible: boolean) => {
   const notifications = useNotificationsStore(state => state.notifications);
   const markAsRead = useNotificationsStore(state => state.markAsRead);
-  const unreadCount = useUnreadNotificationsCount();
   const listRef = useRef<FlatList<StoredNotification>>(null);
+
+  /**
+   * Snapshot of ids present the moment the modal opens. The "new
+   * notifications" pill must only count arrivals from this point forward,
+   * not unread notifications that were already sitting in the store before
+   * the user opened the modal. Reset to null on close so the next open
+   * captures a fresh baseline. Kept in state (not a ref) so capturing it
+   * triggers the recompute below — a ref mutation wouldn't.
+   */
+  const [baselineIds, setBaselineIds] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setBaselineIds(null);
+      return;
+    }
+    setBaselineIds(
+      prev => prev ?? new Set(useNotificationsStore.getState().notifications.map(n => n.id)),
+    );
+  }, [visible]);
+
+  const newNotificationsCount = useMemo(() => {
+    if (!baselineIds) {
+      return 0;
+    }
+    return notifications.filter(n => !n.read && !baselineIds.has(n.id)).length;
+  }, [notifications, baselineIds]);
 
   const scrollToTop = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -58,7 +83,7 @@ export const useNotificationsModal = (visible: boolean) => {
 
   return {
     notifications,
-    unreadCount,
+    newNotificationsCount,
     listRef,
     scrollToTop,
     keyExtractor,

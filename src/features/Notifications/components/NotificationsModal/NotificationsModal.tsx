@@ -18,7 +18,7 @@ interface NotificationsModalProps {
 export const NotificationsModal = ({ visible, onClose }: NotificationsModalProps) => {
   const {
     notifications,
-    unreadCount,
+    newNotificationsCount,
     listRef,
     scrollToTop,
     keyExtractor,
@@ -43,7 +43,7 @@ export const NotificationsModal = ({ visible, onClose }: NotificationsModalProps
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
         />
-        <NotificationsNewIndicator count={unreadCount} onPress={scrollToTop} />
+        <NotificationsNewIndicator count={newNotificationsCount} onPress={scrollToTop} />
       </View>
     </Modal>
   );
