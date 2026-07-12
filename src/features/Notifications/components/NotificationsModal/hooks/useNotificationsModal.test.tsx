@@ -71,4 +71,47 @@ describe('useNotificationsModal', () => {
 
     expect(result.current.viewabilityConfig).toBe(first);
   });
+
+  it('does not count a notification that already existed when the modal opened', () => {
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+
+    const { result } = renderHook(
+      ({ visible }: { visible: boolean }) => useNotificationsModal(visible),
+      { initialProps: { visible: true } },
+    );
+
+    expect(result.current.newNotificationsCount).toBe(0);
+  });
+
+  it('counts a notification that arrives after the modal opened', () => {
+    const { result } = renderHook(
+      ({ visible }: { visible: boolean }) => useNotificationsModal(visible),
+      { initialProps: { visible: true } },
+    );
+
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+
+    expect(result.current.newNotificationsCount).toBe(1);
+  });
+
+  it('resets the baseline the next time the modal is reopened', () => {
+    const { result, rerender } = renderHook(
+      ({ visible }: { visible: boolean }) => useNotificationsModal(visible),
+      { initialProps: { visible: true } },
+    );
+
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+    expect(result.current.newNotificationsCount).toBe(1);
+
+    rerender({ visible: false });
+    rerender({ visible: true });
+
+    expect(result.current.newNotificationsCount).toBe(0);
+  });
 });

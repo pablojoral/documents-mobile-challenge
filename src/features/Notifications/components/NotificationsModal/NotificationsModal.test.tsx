@@ -49,14 +49,25 @@ describe('NotificationsModal', () => {
     expect(useNotificationsStore.getState().notifications[0].read).toBe(true);
   });
 
-  it('shows the new-notifications indicator while unread notifications remain, and hides it once read', () => {
+  it('does not show the new-notifications indicator for notifications that already existed when the modal opened', () => {
+    act(() => {
+      useNotificationsStore.getState().addNotification(makeNotification());
+    });
+
+    const { queryByText } = render(<NotificationsModal visible onClose={jest.fn()} />);
+
+    expect(queryByText('New notifications')).toBeNull();
+  });
+
+  it('shows the new-notifications indicator for a notification that arrives after the modal opened, and hides it once read', () => {
+    const { getByText, queryByText, UNSAFE_getByType } = render(
+      <NotificationsModal visible onClose={jest.fn()} />,
+    );
+
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
     });
     const notification = useNotificationsStore.getState().notifications[0];
-    const { getByText, queryByText, UNSAFE_getByType } = render(
-      <NotificationsModal visible onClose={jest.fn()} />,
-    );
 
     expect(getByText('New notifications')).toBeTruthy();
 
@@ -71,11 +82,12 @@ describe('NotificationsModal', () => {
   });
 
   it('scrolls to the top when the new-notifications indicator is pressed', () => {
+    const { getByText, UNSAFE_getByType } = render(<NotificationsModal visible onClose={jest.fn()} />);
+
     act(() => {
       useNotificationsStore.getState().addNotification(makeNotification());
     });
 
-    const { getByText, UNSAFE_getByType } = render(<NotificationsModal visible onClose={jest.fn()} />);
     const list = UNSAFE_getByType(FlatList);
     list.instance.scrollToOffset = jest.fn();
 
