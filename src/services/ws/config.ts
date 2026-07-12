@@ -1,15 +1,17 @@
+import { WS_BASE_URL as ENV_WS_BASE_URL } from '@env';
+
 /**
  * WebSocket configuration.
  *
  * Parallels the HTTP `services/api/config.ts`. `WS_BASE_URL` is prepended to any
  * relative path passed to a `WebSocketClient` (absolute `ws(s)://` URLs are used
- * as-is).
+ * as-is). Like `API_BASE_URL`, it's machine-specific, so it's read from
+ * `.env.dev` rather than hardcoded — see `.env.example`.
  *
  * Same host caveats as `API_BASE_URL`: `127.0.0.1`/`192.168.x.x` for iOS
  * simulator/device, `10.0.2.2` for the Android emulator.
  */
-
-export const WS_BASE_URL = 'ws://192.168.1.13:8080';
+export const WS_BASE_URL = ENV_WS_BASE_URL;
 
 /** Base delay before the first reconnect attempt (exponential backoff). */
 export const WS_RECONNECT_BASE_DELAY_MS = 1000;

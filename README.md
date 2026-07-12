@@ -240,8 +240,13 @@ The app consumes two data sources from the challenge's testing server:
 - a **WebSocket** connection for real-time notifications.
 
 Both the API base URL and the WebSocket URL are read from configuration (environment) rather than
-hardcoded, so the same build can point at different servers. See `.env.example` _(added with the
-integration work)_ for the exact variables.
+hardcoded, so the same build can point at different servers.
+
+- **`react-native-dotenv`** loads `.env.dev` under the `@env` module (`babel.config.js`).
+  `API_BASE_URL` / `WS_BASE_URL` are the only values sourced from env, since they're the only ones
+  that vary per developer machine.
+- Copy `.env.example` to `.env.dev` and fill in your machine's server address. `.env.dev` is
+  gitignored — machine-specific, not a secret to share.
 
 ## Testing
 
