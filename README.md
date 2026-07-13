@@ -1,9 +1,47 @@
 # Documents Mobile Challenge
 
+> **Branch note.** This branch (`server-mod-main`) modifies the provided challenge server
+> (`server/server.go`) — seeding, pagination/sorting on `GET /documents`, a `POST /documents`
+> endpoint, and real (non-random) notification broadcasts. To see the app built entirely against
+> the server as originally provided, with no server-side changes, check out the `main` branch.
+
 A React Native app that lists the most recent documents, notifies the user in real time when
 another user creates a document, and lets the user create a new document.
 
 > This repository is built incrementally — commit early, commit often.
+
+## Quick start
+
+**Prerequisites**
+- Go (to run the server)
+- Node.js **≥ 22.11** (see `engines` in `package.json`)
+- For iOS: Xcode + CocoaPods (via Ruby Bundler)
+- For Android: JDK 17 and the Android SDK
+- Follow React Native's [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide once.
+- Copy `.env.example` to `.env.dev` and fill in your machine's server address (see
+  [Server configuration](#server-configuration))
+
+**Run the server** (from `server/`, requires Go):
+```sh
+cd server
+go run server.go   # defaults to -fakeNotifications=true (synthetic random notifications)
+
+# or, to emit real notifications tied to document creation instead:
+go run server.go -fakeNotifications=false
+```
+
+**Run the app** (from the repo root):
+```sh
+yarn install
+
+cd ios && pod install && cd ..   # iOS only — installs pods
+
+yarn ios            # build & run on the iOS Simulator (starts Metro automatically)
+yarn android        # build & run on an Android emulator/device (starts Metro automatically)
+```
+
+See [Getting started](#getting-started) and [Server configuration](#server-configuration) below
+for prerequisites and environment setup.
 
 ## Features
 
