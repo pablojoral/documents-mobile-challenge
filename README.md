@@ -57,6 +57,12 @@ for prerequisites and environment setup.
 - Basic offline support. — done, see [Offline support](#offline-support) below.
 - Local notifications — not implemented.
 
+**Other features**
+- Dark mode.
+- Document creation endpoint.
+- On document add notifications.
+- Server side sorting and documents pagination.
+
 ## Reasoning & approach
 
 The goal is a structure that keeps features isolated and lets requirements change without ripple
