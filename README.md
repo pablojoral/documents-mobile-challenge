@@ -8,8 +8,6 @@
 A React Native app that lists the most recent documents, notifies the user in real time when
 another user creates a document, and lets the user create a new document.
 
-> This repository is built incrementally — commit early, commit often.
-
 ## Quick start
 
 **Prerequisites**
